@@ -1,0 +1,2515 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>אפליקציית ספריא לחילוץ טקסטים</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            direction: rtl;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            color: #7f8c8d;
+        }
+
+        .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .navigation-section {
+            display: block;
+        }
+
+        .extractor-section {
+            display: none;
+        }
+
+        .breadcrumb {
+            background: #ecf0f1;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #2c3e50;
+            border-right: 4px solid #3498db;
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .category-card, .book-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-card:hover, .book-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            border-color: #3498db;
+        }
+
+        .category-card::before {
+            content: '📁';
+            font-size: 2em;
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            opacity: 0.7;
+        }
+
+        .book-card::before {
+            content: '📖';
+            font-size: 2em;
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            opacity: 0.7;
+        }
+
+        .category-title, .book-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            margin-right: 50px;
+        }
+
+        .category-subtitle, .book-subtitle {
+            color: #7f8c8d;
+            font-size: 0.95em;
+            margin-right: 50px;
+        }
+
+        .navigation-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.4);
+        }
+
+        .nav-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-size: 18px;
+        }
+
+        .loading::before {
+            content: '⏳';
+            font-size: 2em;
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .success {
+            background: #27ae60;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        /* עיצוב חלק החילוץ */
+        .extractor-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            background: #f8f9fa;
+        }
+
+        .section h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+
+        .detected-book {
+            background: linear-gradient(145deg, #2ecc71, #27ae60);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 8px 0;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            direction: rtl;
+            transition: border-color 0.3s ease;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .range-inputs {
+            display: flex;
+            gap: 15px;
+        }
+
+        .range-inputs input {
+            flex: 1;
+        }
+
+        .checkbox-group {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            background: white;
+        }
+
+        .checkbox-group label {
+            display: block;
+            margin-bottom: 10px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: background-color 0.2s ease;
+        }
+
+        .checkbox-group label:hover {
+            background-color: #f1f3f4;
+        }
+
+        .checkbox-group input[type="checkbox"],
+        .checkbox-group input[type="radio"] {
+            width: auto;
+            margin-left: 10px;
+        }
+
+        .chapter-range {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f4fd;
+            border-radius: 10px;
+            border: 2px solid #3498db;
+            display: none;
+        }
+
+        .chapter-range.show {
+            display: block;
+        }
+
+        .chapter-range label {
+            font-size: 14px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: bold;
+        }
+
+        .generate-btn {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            width: 100%;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(231, 76, 60, 0.4);
+        }
+
+        .generate-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .debug-log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .log-entry {
+            margin: 3px 0;
+            padding: 2px 0;
+        }
+
+        .log-entry.error { color: #e74c3c; }
+        .log-entry.success { color: #2ecc71; }
+        .log-entry.info { color: #3498db; }
+
+        .clear-log-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .parashot-section {
+            display: none;
+        }
+
+        .parashot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .parasha-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .parasha-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-color: #3498db;
+        }
+
+        .parasha-card h4 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .parasha-card p {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .categories-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .navigation-controls {
+                flex-direction: column;
+            }
+            
+            .range-inputs {
+                flex-direction: column;
+            }
+        }
+    
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ אפליקציית ספריא לחילוץ טקסטים</h1>
+            <p>נווט בספרי הקודש, בחר טקסטים ויצור מסמכי Word עם פירושים</p>
+        </div>
+
+        <div class="main-content">
+            <!-- חלק הניווט -->
+            <div class="navigation-section" id="navigationSection">
+                <div class="breadcrumb" id="breadcrumb">
+                    📍 דף הבית
+                </div>
+
+                <div class="navigation-controls">
+                    <button class="nav-btn" id="backBtn" disabled>🔙 חזור</button>
+                    <button class="nav-btn" id="homeBtn">🏠 דף הבית</button>
+                </div>
+
+                <div id="contentArea">
+                    <div class="loading" id="loadingIndicator">
+                        טוען קטגוריות...
+                    </div>
+                </div>
+            </div>
+
+            <!-- חלק הפרשות -->
+            <div class="parashot-section" id="parashotSection">
+                <div class="breadcrumb" id="parashotBreadcrumb">
+                    📍 פרשות התורה
+                </div>
+
+                <div class="navigation-controls">
+                    <button class="nav-btn" id="backToBookBtn">🔙 חזור לספר</button>
+                    <button class="nav-btn" id="homeFromParashotBtn">🏠 דף הבית</button>
+                </div>
+
+                <div id="parashotGrid" class="parashot-grid">
+                    <!-- הפרשות יתווספו כאן דינמית -->
+                </div>
+            </div>
+
+            <!-- חלק החילוץ -->
+            <div class="extractor-section" id="extractorSection">
+                <div class="extractor-content">
+                    <div class="breadcrumb" id="extractorBreadcrumb">
+                        📍 חילוץ טקסטים
+                    </div>
+
+                    <div class="navigation-controls">
+                        <button class="nav-btn" id="backToNavigationBtn">🔙 חזור לניווט</button>
+                        <button class="nav-btn" id="homeFromExtractorBtn">🏠 דף הבית</button>
+                    </div>
+
+                    <div class="detected-book" id="detectedBook">
+                        📖 לא נבחר ספר
+                    </div>
+
+                    <div class="section">
+                        <h3>🎯 בחר טווח סעיפים:</h3>
+                        <select id="startRange">
+                            <option value="">בחר התחלה...</option>
+                        </select>
+                        <select id="endRange">
+                            <option value="">בחר סוף...</option>
+                        </select>
+
+                        <div id="chapterRange" class="chapter-range">
+                            <label>טווח פרקים בתוך הסעיף (אופציונלי):</label>
+                            <div class="range-inputs">
+                                <input type="number" id="startChapter" placeholder="פרק התחלה" min="1">
+                                <input type="number" id="endChapter" placeholder="פרק סוף" min="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>📚 גירסאות נוספות:</h3>
+                        <div id="versionsContainer" class="checkbox-group">
+                            <div>בחר טווח תחילה</div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>📝 מפרשים:</h3>
+                        <div id="commentariesContainer" class="checkbox-group">
+                            <div>בחר טווח תחילה</div>
+                        </div>
+                    </div>
+
+                    <button class="generate-btn" id="generateBtn">📄 יצירת קובץ Word</button>
+                    <div class="loading" id="mainLoading" style="display: none;">
+                        מייצר קובץ...
+                    </div>
+                    <div class="error" id="errorMsg" style="display: none;"></div>
+
+                    <div class="section">
+                        <h3>🔍 לוג דיבוג:</h3>
+                        <button class="clear-log-btn" id="clearLogBtn">🗑️ נקה לוג</button>
+                        <div id="debugLog" class="debug-log">
+                            <div class="log-entry info">📱 Application loaded</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SefariaWebApp {
+            constructor() {
+                this.baseUrl = 'https://www.sefaria.org/api';
+                this.currentPath = [];
+                this.categories = [];
+                this.currentBook = null;
+                this.bookIndex = null;
+                this.parashotData = {};
+                this.extractor = null;
+
+                this.init();
+            }
+
+            async init() {
+                this.log('🚀 Starting Sefaria Web App...');
+                this.setupEventListeners();
+                await this.loadParashotData();
+                await this.loadTableOfContents();
+            }
+
+            log(message, type = 'info') {
+                const logContainer = document.getElementById('debugLog');
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${type}`;
+                logEntry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+                console.log(message);
+            }
+
+            async loadParashotData() {
+                // נתוני פרשות התורה
+                this.parashotData = {
+                    "בראשית": "Genesis 1:1-6:8",
+                    "נח": "Genesis 6:9-11:32",
+                    "לך לך": "Genesis 12:1-17:27",
+                    "וירא": "Genesis 18:1-22:24",
+                    "חיי שרה": "Genesis 23:1-25:18",
+                    "תולדות": "Genesis 25:19-28:9",
+                    "ויצא": "Genesis 28:10-32:3",
+                    "וישלח": "Genesis 32:4-36:43",
+                    "וישב": "Genesis 37:1-40:23",
+                    "מקץ": "Genesis 41:1-44:17",
+                    "ויגש": "Genesis 44:18-47:27",
+                    "ויחי": "Genesis 47:28-50:26",
+                    "שמות": "Exodus 1:1-6:1",
+                    "וארא": "Exodus 6:2-9:35",
+                    "בא": "Exodus 10:1-13:16",
+                    "בשלח": "Exodus 13:17-17:16",
+                    "יתרו": "Exodus 18:1-20:23",
+                    "משפטים": "Exodus 21:1-24:18",
+                    "תרומה": "Exodus 25:1-27:19",
+                    "תצוה": "Exodus 27:20-30:10",
+                    "כי תשא": "Exodus 30:11-34:35",
+                    "ויקהל": "Exodus 35:1-38:20",
+                    "פקודי": "Exodus 38:21-40:38",
+                    "ויקרא": "Leviticus 1:1-5:26",
+                    "צו": "Leviticus 6:1-8:36",
+                    "שמיני": "Leviticus 9:1-11:47",
+                    "תזריע": "Leviticus 12:1-13:59",
+                    "מצורע": "Leviticus 14:1-15:33",
+                    "אחרי מות": "Leviticus 16:1-18:30",
+                    "קדושים": "Leviticus 19:1-20:27",
+                    "אמור": "Leviticus 21:1-24:23",
+                    "בהר": "Leviticus 25:1-26:10",
+                    "בחוקותי": "Leviticus 26:3-27:34",
+                    "במדבר": "Numbers 1:1-4:20",
+                    "נשא": "Numbers 4:21-7:89",
+                    "בהעלותך": "Numbers 8:1-12:16",
+                    "שלח לך": "Numbers 13:1-15:41",
+                    "קרח": "Numbers 16:1-18:32",
+                    "חקת": "Numbers 19:1-22:1",
+                    "בלק": "Numbers 22:2-25:9",
+                    "פינחס": "Numbers 25:10-30:1",
+                    "מטות": "Numbers 30:2-32:42",
+                    "מסעי": "Numbers 33:1-36:13",
+                    "דברים": "Deuteronomy 1:1-3:22",
+                    "ואתחנן": "Deuteronomy 3:23-7:11",
+                    "עקב": "Deuteronomy 7:12-11:25",
+                    "ראה": "Deuteronomy 11:26-16:17",
+                    "שופטים": "Deuteronomy 16:18-21:9",
+                    "כי תצא": "Deuteronomy 21:10-25:19",
+                    "כי תבוא": "Deuteronomy 26:1-29:8",
+                    "נצבים": "Deuteronomy 29:9-30:20",
+                    "וילך": "Deuteronomy 31:1-31:30",
+                    "האזינו": "Deuteronomy 32:1-32:52",
+                    "וזאת הברכה": "Deuteronomy 33:1-34:12"
+                };
+            }
+
+            setupEventListeners() {
+                document.getElementById('backBtn').addEventListener('click', () => this.goBack());
+                document.getElementById('homeBtn').addEventListener('click', () => this.goHome());
+                document.getElementById('backToBookBtn').addEventListener('click', () => this.backToBook());
+                document.getElementById('homeFromParashotBtn').addEventListener('click', () => this.goHome());
+                document.getElementById('backToNavigationBtn').addEventListener('click', () => this.backToNavigation());
+                document.getElementById('homeFromExtractorBtn').addEventListener('click', () => this.goHome());
+
+                // אירועי חילוץ
+                document.getElementById('startRange').addEventListener('change', () => this.onRangeChange());
+                document.getElementById('endRange').addEventListener('change', () => this.onRangeChange());
+                document.getElementById('generateBtn').addEventListener('click', () => this.generateWordDocument());
+                document.getElementById('clearLogBtn').addEventListener('click', () => this.clearLog());
+            }
+
+            async loadTableOfContents() {
+                try {
+                    this.showLoading(true);
+                    this.log('📚 Loading table of contents...');
+
+                    const response = await fetch(`${this.baseUrl}/index`);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                    this.categories = await response.json();
+                    this.log(`✅ Loaded ${this.categories.length} categories`, 'success');
+
+                    this.displayCategories();
+                } catch (error) {
+                    this.log(`❌ Error loading TOC: ${error.message}`, 'error');
+                    this.showError('שגיאה בטעינת המידע מספריא');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            displayCategories() {
+                const contentArea = document.getElementById('contentArea');
+                contentArea.innerHTML = '';
+
+                const grid = document.createElement('div');
+                grid.className = 'categories-grid';
+
+                this.categories.forEach((category, index) => {
+                    if (category.category) {
+                        const card = this.createCategoryCard(category, index);
+                        grid.appendChild(card);
+                    }
+                });
+
+                contentArea.appendChild(grid);
+                this.updateBreadcrumb();
+            }
+
+            createCategoryCard(category, index) {
+                const card = document.createElement('div');
+                card.className = 'category-card';
+                card.onclick = () => this.navigateToCategory(category, index);
+
+                const title = document.createElement('div');
+                title.className = 'category-title';
+                title.textContent = category.category;
+
+                const subtitle = document.createElement('div');
+                subtitle.className = 'category-subtitle';
+                subtitle.textContent = category.heCategory || '';
+
+                card.appendChild(title);
+                card.appendChild(subtitle);
+
+                return card;
+            }
+
+            async navigateToCategory(category, index) {
+                try {
+                    this.log(`🔍 Navigating to category: ${category.category}`);
+                    this.currentPath.push({ type: 'category', data: category, index });
+
+                    if (category.contents && Array.isArray(category.contents)) {
+                        this.log(`📁 Category has ${category.contents.length} items`);
+                        this.displayContents(category.contents);
+                    } else {
+                        this.log('📦 Category has no contents, trying to load...');
+                        this.showLoading(true);
+                        await this.loadCategoryContents(category);
+                    }
+
+                    this.updateBreadcrumb();
+                    this.updateNavigationButtons();
+                } catch (error) {
+                    this.log(`❌ Error navigating to category: ${error.message}`, 'error');
+                    this.showError('שגיאה בניווט לקטגוריה');
+                    this.showLoading(false);
+                }
+            }
+
+            async loadCategoryContents(category) {
+                this.log(`📖 Loading contents for category: ${category.category}`);
+
+                try {
+                    // נסה לטעון מידע נוסף על הקטגוריה
+                    const response = await fetch(`${this.baseUrl}/index/${encodeURIComponent(category.category)}`);
+
+                    if (response.ok) {
+                        const categoryData = await response.json();
+                        this.log(`✅ Loaded category data for: ${category.category}`, 'success');
+
+                        if (categoryData.contents && Array.isArray(categoryData.contents)) {
+                            this.displayContents(categoryData.contents);
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    this.log(`❌ Error loading category contents: ${error.message}`, 'error');
+                }
+
+                // אם לא הצלחנו לטעון תוכן, הצג הודעה
+                const contentArea = document.getElementById('contentArea');
+                if (contentArea) {
+                    contentArea.innerHTML = `
+                        <div class="loading">
+                            <h3>📂 הקטגוריה "${category.heCategory || category.category}" ריקה</h3>
+                            <p>אין תוכן זמין בקטגוריה זו כרגע.</p>
+                        </div>
+                    `;
+                }
+                this.showLoading(false);
+            }
+
+            displayContents(contents) {
+                if (!contents || !Array.isArray(contents)) {
+                    this.log('❌ No valid contents to display', 'error');
+                    this.showError('אין תוכן להצגה');
+                    return;
+                }
+
+                const contentArea = document.getElementById('contentArea');
+                if (!contentArea) {
+                    this.log('❌ Content area not found', 'error');
+                    return;
+                }
+
+                contentArea.innerHTML = '';
+
+                const grid = document.createElement('div');
+                grid.className = 'categories-grid';
+
+                let itemsAdded = 0;
+
+                contents.forEach((item, index) => {
+                    let card;
+                    if (item && typeof item === 'object') {
+                        if (item.category) {
+                            // זוהי תת-קטגוריה
+                            card = this.createCategoryCard(item, index);
+                            card.onclick = () => this.navigateToCategory(item, index);
+                            itemsAdded++;
+                        } else if (item.title) {
+                            // זהו ספר
+                            card = this.createBookCard(item, index);
+                            card.onclick = () => this.selectBook(item);
+                            itemsAdded++;
+                        }
+                        if (card) grid.appendChild(card);
+                    }
+                });
+
+                if (itemsAdded === 0) {
+                    contentArea.innerHTML = `
+                        <div class="loading">
+                            <h3>📚 אין פריטים להצגה</h3>
+                            <p>הקטגוריה הזו לא מכילה ספרים או תת-קטגוריות.</p>
+                        </div>
+                    `;
+                } else {
+                    contentArea.appendChild(grid);
+                    this.log(`✅ Displayed ${itemsAdded} items`, 'success');
+                }
+
+                this.showLoading(false);
+            }
+
+            createBookCard(book, index) {
+                const card = document.createElement('div');
+                card.className = 'book-card';
+
+                const title = document.createElement('div');
+                title.className = 'book-title';
+                title.textContent = book.title;
+
+                const subtitle = document.createElement('div');
+                subtitle.className = 'book-subtitle';
+                subtitle.textContent = book.heTitle || '';
+
+                card.appendChild(title);
+                card.appendChild(subtitle);
+
+                return card;
+            }
+
+            async selectBook(book) {
+                this.log(`📖 Selected book: ${book.title}`);
+                this.currentBook = book;
+
+                // בדיקה אם זהו ספר מחומש התורה
+                const chumashBooks = ["Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy"];
+                if (chumashBooks.includes(book.title)) {
+                    this.showParashotOptions(book);
+                } else {
+                    await this.initializeExtractor(book.title, book.heTitle || book.title);
+                }
+            }
+
+            showParashotOptions(book) {
+                this.log(`📜 Showing parashot options for: ${book.title}`);
+
+                // הסתר את חלק הניווט והצג את חלק הפרשות
+                document.getElementById('navigationSection').style.display = 'none';
+                document.getElementById('parashotSection').style.display = 'block';
+
+                // עדכן breadcrumb
+                document.getElementById('parashotBreadcrumb').textContent =
+                    `📍 פרשות ${book.heTitle || book.title}`;
+
+                this.displayParashot(book.title);
+            }
+
+            displayParashot(bookTitle) {
+                const parashotGrid = document.getElementById('parashotGrid');
+                parashotGrid.innerHTML = '';
+
+                // סינון הפרשות לפי הספר
+                const bookParashot = this.getParashotForBook(bookTitle);
+
+                bookParashot.forEach(parasha => {
+                    const card = document.createElement('div');
+                    card.className = 'parasha-card';
+                    card.onclick = () => this.selectParasha(parasha);
+
+                    const title = document.createElement('h4');
+                    title.textContent = parasha.heTitle;
+
+                    const ref = document.createElement('p');
+                    ref.textContent = parasha.ref;
+
+                    card.appendChild(title);
+                    card.appendChild(ref);
+                    parashotGrid.appendChild(card);
+                });
+
+                if (bookParashot.length === 0) {
+                    parashotGrid.innerHTML = '<div class="loading">לא נמצאו פרשות עבור ספר זה</div>';
+                }
+            }
+
+            getParashotForBook(bookTitle) {
+                const result = [];
+
+                Object.entries(this.parashotData).forEach(([heTitle, ref]) => {
+                    if (ref.startsWith(bookTitle)) {
+                        result.push({ heTitle, ref });
+                    }
+                });
+
+                return result;
+            }
+
+            async selectParasha(parasha) {
+                this.log(`📜 Selected parasha: ${parasha.heTitle} (${parasha.ref})`);
+                await this.initializeExtractor(parasha.ref, parasha.heTitle);
+            }
+
+            backToBook() {
+                this.log('🔙 Returning to book selection');
+                document.getElementById('parashotSection').style.display = 'none';
+                document.getElementById('navigationSection').style.display = 'block';
+            }
+
+            backToNavigation() {
+                this.log('🔙 Returning to navigation');
+                document.getElementById('extractorSection').style.display = 'none';
+                document.getElementById('navigationSection').style.display = 'block';
+            }
+
+            async initializeExtractor(bookRef, heTitle) {
+                this.log(`🔧 Initializing extractor for: ${bookRef}`);
+
+                // הסתר את חלקי הניווט והפרשות והצג את חלק החילוץ
+                document.getElementById('navigationSection').style.display = 'none';
+                document.getElementById('parashotSection').style.display = 'none';
+                document.getElementById('extractorSection').style.display = 'block';
+
+                // עדכן את הכותרת
+                document.getElementById('detectedBook').textContent = `📖 ${heTitle}`;
+                document.getElementById('extractorBreadcrumb').textContent =
+                    `📍 חילוץ טקסטים > ${heTitle}`;
+
+                // אתחל את מחלקה לחילוץ
+                this.extractor = new SefariaExtractor(bookRef, heTitle);
+                await this.extractor.initialize();
+            }
+
+            goBack() {
+                if (this.currentPath.length > 0) {
+                    this.currentPath.pop();
+
+                    if (this.currentPath.length === 0) {
+                        this.displayCategories();
+                    } else {
+                        const lastItem = this.currentPath[this.currentPath.length - 1];
+                        if (lastItem.data.contents) {
+                            this.displayContents(lastItem.data.contents);
+                        }
+                    }
+
+                    this.updateBreadcrumb();
+                    this.updateNavigationButtons();
+                }
+            }
+
+            goHome() {
+                this.log('🏠 Returning to home');
+                this.currentPath = [];
+
+                // הצג את חלק הניווט והסתר את השאר
+                document.getElementById('navigationSection').style.display = 'block';
+                document.getElementById('parashotSection').style.display = 'none';
+                document.getElementById('extractorSection').style.display = 'none';
+
+                this.displayCategories();
+                this.updateNavigationButtons();
+            }
+
+            updateBreadcrumb() {
+                const breadcrumb = document.getElementById('breadcrumb');
+                let path = '📍 דף הבית';
+
+                this.currentPath.forEach(item => {
+                    if (item.data.category) {
+                        path += ` > ${item.data.category}`;
+                    } else if (item.data.title) {
+                        path += ` > ${item.data.title}`;
+                    }
+                });
+
+                breadcrumb.textContent = path;
+            }
+
+            updateNavigationButtons() {
+                const backBtn = document.getElementById('backBtn');
+                backBtn.disabled = this.currentPath.length === 0;
+            }
+
+            showLoading(show) {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                const contentArea = document.getElementById('contentArea');
+
+                if (!loadingIndicator || !contentArea) {
+                    this.log('❌ Loading elements not found', 'error');
+                    return;
+                }
+
+                if (show) {
+                    // הצג את מחוון הטעינה
+                    loadingIndicator.style.display = 'block';
+
+                    // מסתיר את התוכן הקיים אבל לא מוחק אותו
+                    Array.from(contentArea.children).forEach(child => {
+                        if (child !== loadingIndicator && child.style) {
+                            child.style.display = 'none';
+                        }
+                    });
+                } else {
+                    // הסתר את מחוון הטעינה
+                    loadingIndicator.style.display = 'none';
+
+                    // הצג את התוכן
+                    Array.from(contentArea.children).forEach(child => {
+                        if (child !== loadingIndicator && child.style) {
+                            child.style.display = 'block';
+                        }
+                    });
+                }
+            }
+
+            showError(message) {
+                const contentArea = document.getElementById('contentArea');
+                contentArea.innerHTML = `<div class="error">❌ ${message}</div>`;
+            }
+
+            // פונקציות לחילוץ
+            onRangeChange() {
+                if (this.extractor) {
+                    this.extractor.onRangeChange();
+                }
+            }
+
+            generateWordDocument() {
+                if (this.extractor) {
+                    this.extractor.generateWordDocument();
+                }
+            }
+
+            clearLog() {
+                const logContainer = document.getElementById('debugLog');
+                logContainer.innerHTML = '<div class="log-entry info">📱 Log cleared</div>';
+                this.log('🧹 Log cleared by user', 'info');
+            }
+        }
+
+        class SefariaExtractor {
+            constructor(bookRef, heTitle) {
+                this.bookRef = bookRef;
+                this.bookName = bookRef;
+                this.heTitle = heTitle;
+                this.bookIndex = null;
+                this.availableChapters = {};
+                this.bookName =  this.parseBookName(bookRef);  // רק שם הספר, בלי טווח
+                this.isSimpleBook = false; // האם זהו ספר פשוט (מבוסס chapters)
+            }
+
+            async initialize() {
+                try {
+                    app.log('🔧 Initializing extractor...');
+                    await this.loadBookData();
+                    this.setupExtractorEventListeners();
+                    app.log('✅ Extractor initialized', 'success');
+                } catch (error) {
+                    app.log(`❌ Error initializing extractor: ${error.message}`, 'error');
+                }
+            }
+parseBookName(bookRef) {
+    if (!bookRef) {
+        this.bookName = "";
+        return;
+    }
+    
+    // טיפול בפורמטים שונים של הפניות
+    if (bookRef.includes(' ')) {
+        // עבור הפניות כמו "Mishnah Berakhot"
+        if (!bookRef.includes(':') && !bookRef.includes('-')) {
+            // זהו רק שם ספר ללא פרק/פסוק
+            this.bookName = bookRef;
+        } else {
+            // זוהי הפניה עם פרק/פסוק כמו "Genesis 1:1-6:8"
+            // או הפניה מורכבת עם חלקים מרובים
+            
+            // קודם ננסה למצוא היכן מתחילים המספרים
+            const match = bookRef.match(/\d+|\s\d+:/);
+            if (match) {
+                const numberIndex = bookRef.indexOf(match[0]);
+                if (numberIndex > 0) {
+                    // חלץ הכל לפני המספר הראשון כשם הספר
+                    this.bookName = bookRef.substring(0, numberIndex).trim();
+                } else {
+                    this.bookName = bookRef.split(' ')[0];
+                }
+            } else {
+                // לא נמצאו מספרים, פצל לפי רווחים וטפל במקרים מיוחדים
+                const parts = bookRef.split(' ');
+                if (parts.length > 1) {
+                    // בדוק אם זהו שם ספר ידוע מרובה-מילים
+                    if (bookRef.startsWith('Mishnah ') || 
+                        bookRef.startsWith('Tosefta ') || 
+                        bookRef.startsWith('Jerusalem Talmud ') || 
+                        bookRef.startsWith('Babylonian Talmud ')) {
+                        this.bookName = bookRef;
+                    } else {
+                        this.bookName = parts[0];
+                    }
+                } else {
+                    this.bookName = bookRef;
+                }
+            }
+        }
+    } else {
+        // שם ספר פשוט ללא רווחים
+        this.bookName = bookRef;
+    }
+    
+    console.log(`📚 Parsed book name: "${this.bookName}" from reference: "${bookRef}"`);
+    
+    return this.bookName;
+}
+    async loadBookData() {
+        try {
+            app.log(`📚 Loading book data for: ${this.bookName}`);
+
+            const indexResponse = await fetch(`https://www.sefaria.org/api/index/${encodeURIComponent(this.bookName)}`);
+            if (!indexResponse.ok) throw new Error(`HTTP ${indexResponse.status}`);
+
+            this.bookIndex = await indexResponse.json();
+            app.log('📊 Book index loaded', 'success');
+
+            // זיהוי סוג הספר
+            this.detectBookType();
+            this.populateRangeSelectors();
+        } catch (error) {
+            app.log(`❌ Error loading book data: ${error.message}`, 'error');
+            this.showError('שגיאה בטעינת נתוני הספר');
+        }
+    }
+
+            // פונקציה ראשונה שהייתה חסרה
+            detectBookType() {
+                /**
+                 * מזהה את סוג הספר - מורכב (עם schema nodes) או פשוט (עם lengths)
+                 */
+                if (this.bookIndex.schema && this.bookIndex.schema.nodes && this.bookIndex.schema.nodes.length > 0) {
+                    this.isSimpleBook = false;
+                    app.log(`📚 Complex book detected with ${this.bookIndex.schema.nodes.length} sections`);
+                } else if (this.bookIndex.lengths && this.bookIndex.lengths.length > 0) {
+                    this.isSimpleBook = true;
+                    app.log(`📖 Simple book detected with ${this.bookIndex.lengths[0]} chapters`);
+                } else {
+                    app.log('❓ Unknown book structure, defaulting to simple', 'warning');
+                    this.isSimpleBook = true;
+                }
+            }
+
+    populateRangeSelectors() {
+        app.log('🔍 Populating range selectors...');
+        const startSelect = document.getElementById('startRange');
+        const endSelect = document.getElementById('endRange');
+
+        startSelect.innerHTML = '<option value="">בחר התחלה...</option>';
+        endSelect.innerHTML = '<option value="">בחר סוף...</option>';
+
+        if (!this.bookIndex) {
+            app.log('❌ No book index available', 'error');
+            return;
+        }
+
+        if (this.isSimpleBook) {
+            this.populateSimpleBookRanges(startSelect, endSelect);
+        } else {
+            this.populateComplexBookRanges(startSelect, endSelect);
+        }
+
+        app.log(`✅ Range selectors populated for ${this.isSimpleBook ? 'simple' : 'complex'} book`, 'success');
+    }
+
+    populateSimpleBookRanges(startSelect, endSelect) {
+        /**
+         * מלא טווחים עבור ספר פשוט (מבוסס פרקים)
+         */
+        app.log(`📊 Populating simple book ranges`);
+        
+        if (this.bookIndex.lengths && this.bookIndex.lengths.length > 0) {
+            const numChapters = this.bookIndex.lengths[0];
+            app.log(`📖 Book has ${numChapters} chapters`);
+            
+            for (let i = 1; i <= numChapters; i++) {
+                const option = document.createElement('option');
+                option.value = i.toString();
+                option.textContent = `פרק ${i}`;
+                startSelect.appendChild(option.cloneNode(true));
+                endSelect.appendChild(option.cloneNode(true));
+            }
+        } else {
+            // fallback - נסה לזהות אוטומטי
+            app.log('📊 No lengths found, trying automatic detection');
+            this.populateFallbackRanges(startSelect, endSelect);
+        }
+    }
+
+    populateComplexBookRanges(startSelect, endSelect) {
+        /**
+         * מלא טווחים עבור ספר מורכב (מבוסס sections)
+         */
+        app.log(`📚 Populating complex book ranges`);
+        
+        if (this.bookIndex.schema && this.bookIndex.schema.nodes) {
+            this.bookIndex.schema.nodes.forEach((node, index) => {
+                const option = document.createElement('option');
+                option.value = node.title || node.heTitle || `Section_${index + 1}`;
+                option.textContent = node.heTitle || node.title || `סעיף ${index + 1}`;
+                startSelect.appendChild(option.cloneNode(true));
+                endSelect.appendChild(option.cloneNode(true));
+            });
+        }
+    }
+
+    populateFallbackRanges(startSelect, endSelect) {
+        /**
+         * מלא טווחים כ-fallback כאשר אין מידע מפורש
+         */
+        app.log('🔄 Using fallback range population');
+        
+        // נסה עד 50 פרקים כברירת מחדל
+        for (let i = 1; i <= 50; i++) {
+            const option = document.createElement('option');
+            option.value = i.toString();
+            option.textContent = `פרק ${i}`;
+            startSelect.appendChild(option.cloneNode(true));
+            endSelect.appendChild(option.cloneNode(true));
+        }
+    }
+            async onRangeChange() {
+                const startRange = document.getElementById('startRange').value;
+                const endRange = document.getElementById('endRange').value;
+
+                app.log(`🔄 Range changed: ${startRange} to ${endRange}`);
+
+                const chapterRangeDiv = document.getElementById('chapterRange');
+                if (startRange && endRange && startRange === endRange) {
+                    chapterRangeDiv.classList.add('show');
+                    app.log('📖 Single section selected - showing chapter range option');
+                    await this.loadAvailableChapters(startRange);
+                } else {
+                    chapterRangeDiv.classList.remove('show');
+                    document.getElementById('startChapter').value = '';
+                    document.getElementById('endChapter').value = '';
+                }
+
+                if (startRange && endRange) {
+                    app.log('✅ Both ranges selected, loading versions and commentaries...');
+
+                    document.getElementById('versionsContainer').innerHTML = '<div class="loading">טוען גירסאות...</div>';
+                    document.getElementById('commentariesContainer').innerHTML = '<div class="loading">טוען מפרשים...</div>';
+
+                    await this.loadVersionsForRange(startRange, endRange);
+                    await this.loadCommentariesForRange(startRange, endRange);
+                } else {
+                    document.getElementById('versionsContainer').innerHTML = '<div>בחר טווח תחילה</div>';
+                    document.getElementById('commentariesContainer').innerHTML = '<div>בחר טווח תחילה</div>';
+                }
+            }
+
+            async loadAvailableChapters(section) {
+                try {
+                    app.log(`📖 Loading available chapters for section: ${section}`);
+
+                    const fullSectionRef = `${this.bookName}, ${section}`;
+                    const formattedRef = this.formatRefForApi(fullSectionRef);
+                    const url = `https://www.sefaria.org/api/v3/texts/${formattedRef}?fill_in_missing_segments=1`;
+
+                    app.log(`🌐 Getting chapters count from API`);
+
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        const sectionData = await response.json();
+
+                        if (sectionData.versions && sectionData.versions.length > 0) {
+                            const primaryVersion = sectionData.versions.find(v => v.language === 'he' && v.isPrimary) ||
+                                sectionData.versions.find(v => v.language === 'he');
+
+                            if (primaryVersion && primaryVersion.text) {
+                                const chaptersCount = Array.isArray(primaryVersion.text) ? primaryVersion.text.length : 1;
+                                app.log(`✅ Found ${chaptersCount} chapters in section ${section}`, 'success');
+                                this.updateChapterSelectors(chaptersCount);
+                                this.availableChapters[section] = chaptersCount;
+                            }
+                        }
+                    } else {
+                        app.log(`❌ Failed to get section data: ${response.status}`);
+                        this.updateChapterSelectors(10);
+                    }
+                } catch (error) {
+                    app.log(`❌ Error loading chapters: ${error.message}`, 'error');
+                    this.updateChapterSelectors(10);
+                }
+            }
+
+            updateChapterSelectors(maxChapters) {
+                const startChapterSelect = document.getElementById('startChapter');
+                const endChapterSelect = document.getElementById('endChapter');
+
+                const currentStart = startChapterSelect.value;
+                const currentEnd = endChapterSelect.value;
+
+                startChapterSelect.max = maxChapters;
+                endChapterSelect.max = maxChapters;
+
+                startChapterSelect.placeholder = `1-${maxChapters}`;
+                endChapterSelect.placeholder = `1-${maxChapters}`;
+
+                if (currentStart && parseInt(currentStart) <= maxChapters) {
+                    startChapterSelect.value = currentStart;
+                }
+                if (currentEnd && parseInt(currentEnd) <= maxChapters) {
+                    endChapterSelect.value = currentEnd;
+                }
+
+                app.log(`📖 Chapter selectors updated: 1-${maxChapters}`);
+            }
+
+            onChapterRangeChange() {
+                const startChapter = document.getElementById('startChapter').value;
+                const endChapter = document.getElementById('endChapter').value;
+
+                if (startChapter || endChapter) {
+                    app.log(`📖 Chapter range selected: ${startChapter || 'start'} to ${endChapter || 'end'}`);
+                }
+            }
+
+            formatRefForApi(ref) {
+                if (!ref) return '';
+                let formattedRef = ref.replace(/ /g, '_');
+                formattedRef = formattedRef.replace(/:/g, '.');
+                return encodeURIComponent(formattedRef);
+            }
+
+            async loadVersionsForRange(startRange, endRange) {
+                try {
+                    app.log(`🔍 Loading versions for book: ${this.bookName}`);
+
+                    const url = `https://www.sefaria.org/api/texts/versions/${encodeURIComponent(this.bookName)}`;
+                    app.log(`🌐 Getting versions from API`);
+
+                    const response = await fetch(url);
+                    app.log(`📡 Response status: ${response.status}`);
+
+                    if (!response.ok) {
+                        app.log(`❌ Failed to get versions: ${response.status}`, 'error');
+                        document.getElementById('versionsContainer').innerHTML = '<div>שגיאה בטעינת גירסאות</div>';
+                        return;
+                    }
+
+                    const versions = await response.json();
+                    app.log(`📊 Received ${versions.length} versions`);
+
+                    const container = document.getElementById('versionsContainer');
+                    container.innerHTML = '';
+
+                    if (versions && Array.isArray(versions) && versions.length > 0) {
+                        app.log(`✅ Found ${versions.length} versions`, 'success');
+
+                        const primaryHebrew = versions.find(v => v.language === 'he' && v.isPrimary) ||
+                            versions.find(v => v.language === 'he');
+
+                        const primaryNote = document.createElement('div');
+                        primaryNote.style.fontSize = '14px';
+                        primaryNote.style.color = '#2c3e50';
+                        primaryNote.style.marginBottom = '15px';
+                        primaryNote.style.padding = '10px';
+                        primaryNote.style.backgroundColor = '#ecf0f1';
+                        primaryNote.style.borderRadius = '5px';
+                        primaryNote.style.borderRight = '4px solid #3498db';
+                        primaryNote.innerHTML = `<strong>גירסה עיקרית:</strong> ${primaryHebrew ? primaryHebrew.versionTitle : 'גירסה ברירת מחדל'}`;
+                        container.appendChild(primaryNote);
+
+                        const limitNote = document.createElement('div');
+                        limitNote.style.fontSize = '12px';
+                        limitNote.style.color = '#666';
+                        limitNote.style.marginBottom = '10px';
+                        limitNote.textContent = 'בחר גירסה נוספת אחת (אופציונלי):';
+                        container.appendChild(limitNote);
+
+                        versions.forEach((version, index) => {
+                            if (primaryHebrew && version.versionTitle === primaryHebrew.versionTitle) {
+                                return;
+                            }
+
+                            app.log(`📖 Version ${index + 1}: ${version.versionTitle} (${version.language})`);
+                            const label = document.createElement('label');
+                            label.style.display = 'block';
+                            label.style.marginBottom = '5px';
+                            label.style.cursor = 'pointer';
+
+                            const radio = document.createElement('input');
+                            radio.type = 'radio';
+                            radio.name = 'additionalVersion';
+                            radio.value = version.versionTitle;
+                            radio.style.marginLeft = '5px';
+
+                            label.appendChild(radio);
+                            label.appendChild(document.createTextNode(`${version.versionTitle} (${version.language})`));
+                            container.appendChild(label);
+                        });
+
+                        const noneLabel = document.createElement('label');
+                        noneLabel.style.display = 'block';
+                        noneLabel.style.marginBottom = '5px';
+                        noneLabel.style.cursor = 'pointer';
+                        noneLabel.style.fontStyle = 'italic';
+                        noneLabel.style.color = '#7f8c8d';
+
+                        const noneRadio = document.createElement('input');
+                        noneRadio.type = 'radio';
+                        noneRadio.name = 'additionalVersion';
+                        noneRadio.value = '';
+                        noneRadio.style.marginLeft = '5px';
+                        noneRadio.checked = true;
+
+                        noneLabel.appendChild(noneRadio);
+                        noneLabel.appendChild(document.createTextNode('ללא גירסה נוספת'));
+                        container.appendChild(noneLabel);
+
+                    } else {
+                        container.innerHTML = '<div>לא נמצאו גירסאות נוספות</div>';
+                        app.log('❌ No versions found', 'error');
+                    }
+                } catch (error) {
+                    app.log(`❌ Fatal error loading versions: ${error.message}`, 'error');
+                    document.getElementById('versionsContainer').innerHTML = '<div>שגיאה בטעינת גירסאות</div>';
+                }
+            }
+            isNodeBasedBook(bookIndex) {
+                return bookIndex && bookIndex.schema && Array.isArray(bookIndex.schema.nodes);
+            }
+
+            async loadCommentariesForRange(startRange, endRange) {
+                try {
+                    app.log(`🔍 Loading commentaries for range: ${startRange} to ${endRange}`);
+
+
+                    // Use this.bookIndex and this.bookName
+                    const isNode = this.isNodeBasedBook(this.bookIndex);
+                    const bookName = this.bookName; // Ensure bookName is accessible
+
+                    const possibleRefs = isNode
+                        ? [
+                            `${bookName}, ${startRange}.1.1`, // Use startRange as sectionName
+                            `${bookName}, ${startRange}.1`,
+                            `${bookName}, ${startRange}`
+                        ]
+                        : [
+                            `${bookName}.${startRange}.1`,
+                            `${bookName}.${startRange}.1.1`, // Use startRange as sectionName
+
+                            `${bookName}.${startRange}`
+                        ];
+
+                    let linksData = null;
+                    let workingRef = null;
+
+                    for (let i = 0; i < possibleRefs.length; i++) {
+                        const ref = possibleRefs[i];
+                        try {
+                            const formattedRef = this.formatRefForApi(ref);
+                            const linksUrl = `https://www.sefaria.org/api/links/${formattedRef}`;
+
+                            app.log(`🌐 [${i + 1}/${possibleRefs.length}] Trying commentaries API`);
+
+                            const response = await fetch(linksUrl);
+                            app.log(`📡 Response status: ${response.status}`);
+
+                            if (response.ok) {
+                                linksData = await response.json();
+                                workingRef = ref;
+                                app.log(`✅ SUCCESS with ref: ${ref}`, 'success');
+                                break;
+                            } else {
+                                app.log(`❌ Failed with ref: ${ref} (${response.status})`, 'error');
+                            }
+                        } catch (error) {
+                            app.log(`❌ Network error with ref: ${ref} - ${error.message}`, 'error');
+                        }
+
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+
+                    const container = document.getElementById('commentariesContainer');
+
+                    if (!linksData) {
+                        app.log('❌ No working reference found for commentaries', 'error');
+                        container.innerHTML = '<div>לא נמצאו מפרשים לטווח זה</div>';
+                        return;
+                    }
+
+                    app.log(`📊 Received links data`);
+                    container.innerHTML = '';
+
+                    let links = [];
+                    if (Array.isArray(linksData)) {
+                        links = linksData;
+                    } else if (linksData && typeof linksData === 'object') {
+                        Object.values(linksData).forEach(value => {
+                            if (Array.isArray(value)) {
+                                links = links.concat(value);
+                            }
+                        });
+                    }
+
+                    app.log(`📋 Processing ${links.length} links`);
+
+                    const commentariesMap = new Map();
+
+                    for (const link of links) {
+                        if (!link || link.category !== 'Commentary') continue;
+
+                        const commentaryTitle = link.collectiveTitle && link.collectiveTitle.he ||
+                            link.collectiveTitle && link.collectiveTitle.en || 'מפרש לא ידוע';
+
+                        if (!commentariesMap.has(commentaryTitle)) {
+                            commentariesMap.set(commentaryTitle, {
+                                title: commentaryTitle,
+                                titleEn: link.collectiveTitle && link.collectiveTitle.en || '',
+                                titleHe: link.collectiveTitle && link.collectiveTitle.he || '',
+                                category: link.category,
+                                ref: link.sourceRef,
+                                sourceHeRef: link.sourceHeRef,
+                                anchorRef: link.anchorRef,
+                                selected: false
+                            });
+                        }
+                    }
+
+                    const commentaries = Array.from(commentariesMap.values());
+                    app.log(`✅ Found ${commentaries.length} unique commentaries`, 'success');
+
+                    if (commentaries.length > 0) {
+                        commentaries.forEach((commentary, index) => {
+                            app.log(`📝 Commentary ${index + 1}: ${commentary.title}`);
+                            const label = document.createElement('label');
+                            label.style.display = 'block';
+                            label.style.marginBottom = '5px';
+                            label.innerHTML = `
+                                <input type="checkbox" value="${commentary.title}" style="margin-left: 5px;">
+                                ${commentary.title}
+                            `;
+                            container.appendChild(label);
+                        });
+                    } else {
+                        container.innerHTML = '<div>לא נמצאו מפרשים</div>';
+                        app.log('❌ No commentaries found', 'error');
+                    }
+                } catch (error) {
+                    app.log(`❌ Fatal error loading commentaries: ${error.message}`, 'error');
+                    document.getElementById('commentariesContainer').innerHTML = '<div>שגיאה בטעינת מפרשים</div>';
+                }
+            }
+
+            async generateWordDocument() {
+                const generateBtn = document.getElementById('generateBtn');
+                const loading = document.getElementById('mainLoading');
+
+                try {
+                    app.log('📄 Starting document generation...');
+
+                    generateBtn.style.display = 'none';
+                    loading.style.display = 'block';
+
+                    const startRange = document.getElementById('startRange').value;
+                    const endRange = document.getElementById('endRange').value;
+
+                    if (!startRange || !endRange) {
+                        throw new Error('יש לבחור טווח');
+                    }
+
+                    const selectedVersions = [];
+                    const selectedRadio = document.querySelector('#versionsContainer input[name="additionalVersion"]:checked');
+                    if (selectedRadio && selectedRadio.value) {
+                        selectedVersions.push(selectedRadio.value);
+                    }
+
+                    const selectedCommentaries = Array.from(document.querySelectorAll('#commentariesContainer input:checked'))
+                        .map(cb => cb.value);
+
+                    app.log(`📚 Selected versions: ${selectedVersions.join(', ') || 'default only'}`);
+                    app.log(`📝 Selected commentaries: ${selectedCommentaries.join(', ') || 'none'}`);
+
+                    const textData = await this.fetchTextData(startRange, endRange, selectedVersions, selectedCommentaries);
+                    app.log('📊 Text data fetched successfully');
+
+                    const wordDoc = this.createWordDocument(textData);
+                    app.log('📄 Word document created');
+
+                    this.downloadDocument(wordDoc);
+                    app.log('✅ Document download initiated', 'success');
+
+                } catch (error) {
+                    app.log(`❌ Error generating document: ${error.message}`, 'error');
+                    this.showError(error.message);
+                } finally {
+                    generateBtn.style.display = 'block';
+                    loading.style.display = 'none';
+                }
+            }
+
+             async fetchTextData(startRange, endRange, versions, commentaries) {
+        app.log(`🔍 Fetching text data for range: ${startRange} to ${endRange}`);
+
+        const startChapter = document.getElementById('startChapter').value;
+        const endChapter = document.getElementById('endChapter').value;
+        const chapterRange = this.getChapterRange(startChapter, endChapter);
+
+        if (chapterRange) {
+            app.log(`📖 Chapter range specified: ${chapterRange.start} to ${chapterRange.end}`);
+        }
+
+        const textData = [];
+
+        try {
+            if (this.isSimpleBook) {
+                await this.fetchSimpleBookData(startRange, endRange, textData, versions, commentaries, chapterRange);
+            } else {
+                await this.fetchComplexBookData(startRange, endRange, textData, versions, commentaries, chapterRange);
+            }
+
+            app.log(`🎉 Total paragraphs fetched: ${textData.length}`, 'success');
+
+        } catch (error) {
+            app.log(`❌ Fatal error fetching text data: ${error.message}`, 'error');
+            throw new Error('שגיאה בשליפת הטקסט');
+        }
+
+        return textData;
+    }
+     async fetchSimpleBookData(startRange, endRange, textData, versions, commentaries, chapterRange) {
+        /**
+         * שליפת נתונים עבור ספר פשוט (מבוסס פרקים)
+         */
+        app.log(`📖 Fetching simple book data from chapter ${startRange} to ${endRange}`);
+
+        const startChapter = parseInt(startRange);
+        const endChapter = parseInt(endRange);
+
+        for (let chapter = startChapter; chapter <= endChapter; chapter++) {
+            app.log(`⏳ Processing chapter ${chapter}`);
+            
+            const chapterRef = `${this.bookName} ${chapter}`;
+            await this.fetchChapterData(chapterRef, chapter, textData, versions, commentaries);
+            
+            // השהיה קצרה בין בקשות
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+    }
+
+     async fetchChapterData(chapterRef, chapterNumber, textData, selectedVersions, selectedCommentaries) {
+        /**
+         * שליפת נתוני פרק עבור ספר פשוט
+         */
+        try {
+            let params = "?fill_in_missing_segments=1&return_format=wrap_all_entities";
+            
+            if (selectedVersions.length > 0) {
+                selectedVersions.forEach(versionTitle => {
+                    const encodedVersion = encodeURIComponent(`hebrew|${versionTitle}`);
+                    params += `&version=${encodedVersion}`;
+                });
+            }
+
+            const formattedRef = this.formatRefForApi(chapterRef);
+            const url = `https://www.sefaria.org/api/v3/texts/${formattedRef}${params}`;
+
+            app.log(`🌐 Fetching chapter data for: ${chapterRef}`);
+
+            const response = await fetch(url);
+            if (response.ok) {
+                const chapterData = await response.json();
+                app.log(`✅ Got chapter data for ${chapterRef} with ${chapterData.versions?.length || 0} versions`);
+
+                if (chapterData.versions && chapterData.versions.length > 0) {
+                    await this.processSimpleChapterData(chapterRef, chapterNumber, chapterData.versions, selectedVersions, selectedCommentaries, textData);
+                }
+            } else {
+                app.log(`❌ Failed to get chapter: ${response.status}`);
+            }
+        } catch (error) {
+            app.log(`❌ Error fetching chapter ${chapterRef}: ${error.message}`, 'error');
+        }
+    }
+    
+    async processSimpleChapterData(chapterRef, chapterNumber, versions, selectedVersions, selectedCommentaries, textData, chapterRange) {
+        /**
+         * עיבוד נתוני פרק עבור ספר פשוט
+         */
+        app.log(`📄 Processing chapter ${chapterNumber} data`);
+
+        const primaryHebrew = versions.find(v => v.language === 'he' && v.isPrimary) ||
+            versions.find(v => v.language === 'he');
+
+        if (primaryHebrew && primaryHebrew.text) {
+            const verses = Array.isArray(primaryHebrew.text) ? primaryHebrew.text : [primaryHebrew.text];
+
+            app.log(`📖 Found ${verses.length} verses in chapter ${chapterNumber}`);
+
+            // חישוב טווח הפסוקים לפי הטווח שנבחר
+            let startVerse = 1;
+            let endVerse = verses.length;
+
+            if (chapterRange) {
+                startVerse = chapterRange.start || 1;
+                endVerse = Math.min(chapterRange.end || verses.length, verses.length);
+                app.log(`📖 Using verse range: ${startVerse} to ${endVerse}`);
+            }
+
+            for (let verseIndex = startVerse - 1; verseIndex < endVerse; verseIndex++) {
+                const verse = verses[verseIndex];
+                if (verse && verse.trim()) {
+                    const ref = `${this.bookName} ${chapterNumber}:${verseIndex + 1}`;
+
+                    const additionalVersions = this.getAdditionalVersionsForParagraph(versions, selectedVersions, 0, verseIndex);
+                    console.log(selectedCommentaries,"selectedCommentaries");
+                    
+                    const commentaries = await this.getCommentariesForRef(ref, selectedCommentaries);
+
+                    textData.push({
+                        ref: ref,
+                        section: `פרק ${chapterNumber}`,
+                        sectionHeTitle: `פרק ${chapterNumber}`,
+                        chapter: chapterNumber,
+                        chapterHeTitle: `פרק ${chapterNumber}`,
+                        paragraph: verseIndex + 1,
+                        he: verse,
+                        en: this.getEnglishParagraph(versions, 0, verseIndex),
+                        selectedVersions: additionalVersions,
+                        selectedCommentaries: commentaries,
+                        displayTitle: `${this.bookName} ${chapterNumber}:${verseIndex + 1}`,
+                        bookName: this.bookName,
+                        bookHeTitle: this.getBookHebrewTitle()
+                    });
+
+                    app.log(`✅ Added verse: ${this.bookName} ${chapterNumber}:${verseIndex + 1} with ${commentaries.length} commentaries`);
+                    if (commentaries.length > 0) {
+                        commentaries.forEach(commentary => {
+                            app.log(`📝 Commentary added: ${commentary.title} (${commentary.text.length} chars)`);
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+     async fetchComplexBookData(startRange, endRange, textData, versions, commentaries, chapterRange) {
+        /**
+         * שליפת נתונים עבור ספר מורכב (מבוסס sections)
+         */
+        app.log(`📚 Fetching complex book data`);
+
+        const sections = this.getSectionsBetween(startRange, endRange);
+        app.log(`📖 Processing ${sections.length} sections: ${sections.join(', ')}`);
+
+        for (let i = 0; i < sections.length; i++) {
+            const section = sections[i];
+            app.log(`⏳ Processing section ${i + 1}/${sections.length}: ${section}`);
+
+            await this.fetchSectionData(section, textData, versions, commentaries, chapterRange);
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+    }
+            getChapterRange(startChapter, endChapter) {
+                if (!startChapter && !endChapter) {
+                    return null;
+                }
+
+                const start = parseInt(startChapter) || 1;
+                const end = parseInt(endChapter) || 999;
+
+                return { start, end };
+            }
+
+            getSectionsBetween(startRange, endRange) {
+                const sections = [];
+
+                if (!this.bookIndex || !this.bookIndex.schema || !this.bookIndex.schema.nodes) {
+                    return [startRange, endRange];
+                }
+
+                const startIndex = this.bookIndex.schema.nodes.findIndex(node =>
+                    node.title === startRange || node.heTitle === startRange);
+                const endIndex = this.bookIndex.schema.nodes.findIndex(node =>
+                    node.title === endRange || node.heTitle === endRange);
+
+                if (startIndex >= 0 && endIndex >= 0) {
+                    for (let i = startIndex; i <= endIndex; i++) {
+                        sections.push(this.bookIndex.schema.nodes[i].title);
+                    }
+                } else {
+                    sections.push(startRange);
+                    if (startRange !== endRange) {
+                        sections.push(endRange);
+                    }
+                }
+
+                return sections;
+            }
+
+            async fetchSectionData(section, textData, selectedVersions, selectedCommentaries, chapterRange) {
+                try {
+                    app.log(`📖 Fetching section: ${section}`);
+
+                    let params = "?fill_in_missing_segments=1&return_format=wrap_all_entities";
+                    params += "&version=hebrew%7CHebrew%20Translation&version=hebrew%7CVocalized%20Zohar%2C%20Israel%202013";
+
+                    if (selectedVersions.length > 0) {
+                        selectedVersions.forEach(versionTitle => {
+                            const encodedVersion = encodeURIComponent(`hebrew|${versionTitle}`);
+                            params += `&version=${encodedVersion}`;
+                        });
+                    }
+
+                    const fullSectionRef = `${this.bookName}, ${section}`;
+                    const formattedRef = this.formatRefForApi(fullSectionRef);
+                    const url = `https://www.sefaria.org/api/v3/texts/${formattedRef}${params}`;
+
+                    app.log(`🌐 Fetching section data`);
+
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        const sectionData = await response.json();
+                        app.log(`✅ Got section data for ${section} with ${sectionData.versions && sectionData.versions.length || 0} versions`);
+
+                        if (sectionData.versions && sectionData.versions.length > 0) {
+                            await this.processSectionVersionsWithCommentaries(section, sectionData.versions, selectedVersions, selectedCommentaries, textData, chapterRange);
+                        }
+                    } else {
+                        app.log(`❌ Failed to get section: ${response.status}`);
+                        await this.fetchSectionByChapters(section, textData, selectedVersions, selectedCommentaries, chapterRange);
+                    }
+                } catch (error) {
+                    app.log(`❌ Error fetching section ${section}: ${error.message}`, 'error');
+                }
+            }
+
+            async processSectionVersionsWithCommentaries(section, versions, selectedVersions, selectedCommentaries, textData, chapterRange) {
+                app.log(`📄 Processing ${versions.length} versions for section ${section}`);
+
+                const primaryHebrew = versions.find(v => v.language === 'he' && v.isPrimary) ||
+                    versions.find(v => v.language === 'he');
+
+                if (primaryHebrew && primaryHebrew.text) {
+                    const textArray = Array.isArray(primaryHebrew.text) ? primaryHebrew.text : [primaryHebrew.text];
+
+                    app.log(`📖 Found ${textArray.length} chapters in ${section}`);
+
+                    for (let chapterIndex = 0; chapterIndex < textArray.length; chapterIndex++) {
+                        const chapterNumber = chapterIndex + 1;
+
+                        if (chapterRange && (chapterNumber < chapterRange.start || chapterNumber > chapterRange.end)) {
+                            app.log(`⏭️ Skipping chapter ${chapterNumber} (outside range ${chapterRange.start}-${chapterRange.end})`);
+                            continue;
+                        }
+
+                        const chapterData = textArray[chapterIndex];
+                        const chapterTitle = this.getChapterHebrewTitle(section, chapterNumber);
+
+                        if (Array.isArray(chapterData)) {
+                            for (let paragraphIndex = 0; paragraphIndex < chapterData.length; paragraphIndex++) {
+                                const paragraph = chapterData[paragraphIndex];
+                                if (paragraph && paragraph.trim()) {
+                                    const ref = `${this.bookName}, ${section} ${chapterNumber}:${paragraphIndex + 1}`;
+
+                                    const additionalVersions = this.getAdditionalVersionsForParagraph(versions, selectedVersions, chapterIndex, paragraphIndex);
+                                    const commentaries = await this.getCommentariesForRef(ref, selectedCommentaries);
+
+                                    textData.push({
+                                        ref: ref,
+                                        section: section,
+                                        sectionHeTitle: this.getSectionHebrewTitle(section),
+                                        chapter: chapterNumber,
+                                        chapterHeTitle: chapterTitle,
+                                        paragraph: paragraphIndex + 1,
+                                        he: paragraph,
+                                        en: this.getEnglishParagraph(versions, chapterIndex, paragraphIndex),
+                                        selectedVersions: additionalVersions,
+                                        selectedCommentaries: commentaries,
+                                        displayTitle: `${section} ${chapterNumber}:${paragraphIndex + 1}`,
+                                        bookName: this.bookName,
+                                        bookHeTitle: this.getBookHebrewTitle()
+                                    });
+
+                                    app.log(`✅ Added paragraph: ${section} ${chapterNumber}:${paragraphIndex + 1}`);
+                                }
+                            }
+                        } else if (chapterData && chapterData.trim()) {
+                            const ref = `${this.bookName}, ${section} ${chapterNumber}`;
+
+                            const additionalVersions = this.getAdditionalVersionsForChapter(versions, selectedVersions, chapterIndex);
+                            const commentaries = await this.getCommentariesForRef(ref, selectedCommentaries);
+
+                            textData.push({
+                                ref: ref,
+                                section: section,
+                                sectionHeTitle: this.getSectionHebrewTitle(section),
+                                chapter: chapterNumber,
+                                chapterHeTitle: chapterTitle,
+                                paragraph: 1,
+                                he: chapterData,
+                                en: this.getEnglishChapter(versions, chapterIndex),
+                                selectedVersions: additionalVersions,
+                                selectedCommentaries: commentaries,
+                                displayTitle: `${section} ${chapterNumber}`,
+                                bookName: this.bookName,
+                                bookHeTitle: this.getBookHebrewTitle()
+                            });
+
+                            app.log(`✅ Added chapter: ${section} ${chapterNumber}`);
+                        }
+                    }
+                }
+            }
+
+            getBookHebrewTitle() {
+                if (this.bookIndex && this.bookIndex.heTitle) {
+                    return this.bookIndex.heTitle;
+                }
+                return this.heTitle || this.bookName;
+            }
+
+            getSectionHebrewTitle(section) {
+                if (this.bookIndex && this.bookIndex.schema && this.bookIndex.schema.nodes) {
+                    const node = this.bookIndex.schema.nodes.find(n =>
+                        n.title === section || n.heTitle === section
+                    );
+                    if (node && node.heTitle) {
+                        return node.heTitle;
+                    }
+                }
+                return section;
+            }
+
+            getChapterHebrewTitle(section, chapterNumber) {
+                if (this.bookIndex && this.bookIndex.schema && this.bookIndex.schema.nodes) {
+                    const sectionNode = this.bookIndex.schema.nodes.find(n =>
+                        n.title === section || n.heTitle === section
+                    );
+
+                    if (sectionNode && sectionNode.nodes && sectionNode.nodes[chapterNumber - 1]) {
+                        const chapterNode = sectionNode.nodes[chapterNumber - 1];
+                        if (chapterNode.heTitle) {
+                            return chapterNode.heTitle;
+                        }
+                    }
+                }
+
+                return `פרק ${chapterNumber}`;
+            }
+
+            getAdditionalVersionsForParagraph(versions, selectedVersions, chapterIndex, paragraphIndex) {
+                const additionalVersions = [];
+
+                versions.forEach(version => {
+                    if (selectedVersions.length > 0 && selectedVersions.includes(version.versionTitle)) {
+                        if (version.isPrimary && version.language === 'he') return;
+
+                        const text = this.extractTextFromVersion(version, chapterIndex, paragraphIndex);
+                        if (text && text.trim()) {
+                            additionalVersions.push({
+                                title: version.versionTitle,
+                                text: text,
+                                language: version.language
+                            });
+                        }
+                    }
+                });
+
+                return additionalVersions;
+            }
+
+            getAdditionalVersionsForChapter(versions, selectedVersions, chapterIndex) {
+                const additionalVersions = [];
+
+                versions.forEach(version => {
+                    if (selectedVersions.length > 0 && selectedVersions.includes(version.versionTitle)) {
+                        if (version.isPrimary && version.language === 'he') return;
+
+                        const text = this.getEnglishChapter(versions, chapterIndex, version);
+                        if (text && text.trim()) {
+                            additionalVersions.push({
+                                title: version.versionTitle,
+                                text: text,
+                                language: version.language
+                            });
+                        }
+                    }
+                });
+
+                return additionalVersions;
+            }
+
+            async getCommentariesForRef(ref, selectedCommentaries) {
+                if (!selectedCommentaries || selectedCommentaries.length === 0) {
+                    return [];
+                }
+
+                try {
+                    const formattedRef = this.formatRefForApi(ref);
+                    const linksUrl = `https://www.sefaria.org/api/links/${formattedRef}`;
+
+                    const response = await fetch(linksUrl);
+                    if (!response.ok) {
+                        app.log(`❌ Failed to get commentaries for ${ref}: ${response.status}`);
+                        return [];
+                    }
+
+                    const linksData = await response.json();
+                    const commentaries = [];
+
+                    let links = [];
+                    if (Array.isArray(linksData)) {
+                        links = linksData;
+                    } else if (linksData && typeof linksData === 'object') {
+                        Object.values(linksData).forEach(value => {
+                            if (Array.isArray(value)) {
+                                links = links.concat(value);
+                            }
+                        });
+                    }
+ const cleanForComparison = (str) => {
+                        if (!str) return '';
+                        return str
+                            .replace(/[״"'`׳]/g, '') // הסר גרשיים וגרשים
+                            .replace(/\s+/g, ' ')    // הפוך רווחים מרובים לרווח יחיד
+                            .trim()                  // הסר רווחים מהתחלה והסוף
+                            .toLowerCase();          // הפוך לאותיות קטנות
+                    };
+
+                    for (const selectedTitle of selectedCommentaries) {
+                        const cleanSelectedTitle = cleanForComparison(selectedTitle);
+                        
+                        const matchingLink = links.find(link => {
+                            if (!link || link.category !== 'Commentary' || !link.collectiveTitle) return false;
+                            
+                            const cleanHeTitle = cleanForComparison(link.collectiveTitle.he);
+                            const cleanEnTitle = cleanForComparison(link.collectiveTitle.en);
+                            
+                            return (
+                                // השוואה מדויקת לאחר ניקוי
+                                cleanHeTitle === cleanSelectedTitle ||
+                                cleanEnTitle === cleanSelectedTitle ||
+                                // השוואה עם הכלה
+                                (cleanHeTitle && cleanHeTitle.includes(cleanSelectedTitle)) ||
+                                (cleanEnTitle && cleanEnTitle.includes(cleanSelectedTitle)) ||
+                                (cleanSelectedTitle.includes(cleanHeTitle)) ||
+                                (cleanSelectedTitle.includes(cleanEnTitle)) ||
+                                // השוואה של מילים בודדות (לרש"י, תוספות וכו')
+                                cleanHeTitle.split(' ').some(word => word === cleanSelectedTitle) ||
+                                cleanEnTitle.split(' ').some(word => word === cleanSelectedTitle) ||
+                                cleanSelectedTitle.split(' ').some(word => word === cleanHeTitle || word === cleanEnTitle)
+                            );
+                        });
+
+                        if (matchingLink) {
+                            const commentaryText = await this.fetchCommentaryText(matchingLink.sourceRef);
+                            if (commentaryText) {
+                                commentaries.push({
+                                    title: selectedTitle,
+                                    text: commentaryText,
+                                    ref: matchingLink.sourceRef
+                                });
+                            }
+                        }
+                    }
+
+                    return commentaries;
+                } catch (error) {
+                    app.log(`❌ Error getting commentaries for ${ref}: ${error.message}`, 'error');
+                    return [];
+                }
+            }
+
+             async fetchCommentaryText(ref) {
+                try {
+                    app.log(`🔍 Fetching commentary text for: ${ref}`);
+                    
+                    // נסה גישות שונות לפורמט של הפניה
+                    const possibleUrls = [
+                        `https://www.sefaria.org/api/v3/texts/${this.formatRefForApi(ref)}`,
+                        `https://www.sefaria.org/api/texts/${this.formatRefForApi(ref)}`,
+                        `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(ref)}`,
+                        `https://www.sefaria.org/api/texts/${encodeURIComponent(ref)}`
+                    ];
+
+                    for (const url of possibleUrls) {
+                        try {
+                            app.log(`🌐 Trying commentary URL: ${url}`);
+                            const response = await fetch(url);
+                            
+                            if (response.ok) {
+                                const data = await response.json();
+                                app.log(`✅ Got commentary response for ${ref}`);
+                                
+                                // נסה לחלץ טקסט מהמבנה
+                                let text = null;
+                                
+                                if (data.versions && data.versions.length > 0) {
+                                    const hebrewVersion = data.versions.find(v => v.language === 'he') || data.versions[0];
+                                    if (hebrewVersion && hebrewVersion.text) {
+                                        text = Array.isArray(hebrewVersion.text)
+                                            ? hebrewVersion.text.join(' ')
+                                            : hebrewVersion.text;
+                                    }
+                                } else if (data.he) {
+                                    // פורמט ישן של API
+                                    text = Array.isArray(data.he) ? data.he.join(' ') : data.he;
+                                } else if (data.text) {
+                                    // פורמט אחר
+                                    text = Array.isArray(data.text) ? data.text.join(' ') : data.text;
+                                }
+                                
+                                if (text && text.trim()) {
+                                    app.log(`✅ Found commentary text (${text.length} chars)`, 'success');
+                                    return text.trim();
+                                }
+                            } else {
+                                app.log(`❌ Failed with status: ${response.status}`);
+                            }
+                        } catch (urlError) {
+                            app.log(`❌ Error with URL ${url}: ${urlError.message}`);
+                            continue;
+                        }
+                        
+                        // השהיה קצרה בין בקשות
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                    
+                    app.log(`❌ No commentary text found for ${ref}`, 'error');
+                    return null;
+                } catch (error) {
+                    app.log(`❌ Fatal error fetching commentary text: ${error.message}`, 'error');
+                    return null;
+                }
+            }
+
+            async fetchSectionByChapters(section, textData, selectedVersions, selectedCommentaries, chapterRange) {
+                app.log(`🔄 Fallback: fetching ${section} chapter by chapter`);
+
+                const startChapter = chapterRange ? chapterRange.start : 1;
+                const endChapter = chapterRange ? chapterRange.end : 10;
+
+                for (let chapter = startChapter; chapter <= endChapter; chapter++) {
+                    const chapterRef = `${this.bookName}, ${section} ${chapter}`;
+                    const formattedRef = this.formatRefForApi(chapterRef);
+
+                    let params = "?fill_in_missing_segments=1&return_format=wrap_all_entities";
+                    params += "&version=hebrew%7CHebrew%20Translation&version=hebrew%7CVocalized%20Zohar%2C%20Israel%202013";
+
+                    if (selectedVersions.length > 0) {
+                        selectedVersions.forEach(versionTitle => {
+                            const encodedVersion = encodeURIComponent(`hebrew|${versionTitle}`);
+                            params += `&version=${encodedVersion}`;
+                        });
+                    }
+
+                    const url = `https://www.sefaria.org/api/v3/texts/${formattedRef}${params}`;
+
+                    try {
+                        app.log(`🌐 Trying chapter ${chapter}`);
+                        const response = await fetch(url);
+                        if (response.ok) {
+                            const chapterData = await response.json();
+                            if (chapterData.versions && chapterData.versions.length > 0) {
+                                app.log(`✅ Got chapter ${chapter} of ${section}`);
+
+                                const primaryHebrew = chapterData.versions.find(v => v.language === 'he' && v.isPrimary) ||
+                                    chapterData.versions.find(v => v.language === 'he');
+
+                                if (primaryHebrew && primaryHebrew.text) {
+                                    const paragraphs = Array.isArray(primaryHebrew.text) ? primaryHebrew.text : [primaryHebrew.text];
+                                    const chapterTitle = this.getChapterHebrewTitle(section, chapter);
+
+                                    for (let paragraphIndex = 0; paragraphIndex < paragraphs.length; paragraphIndex++) {
+                                        const paragraph = paragraphs[paragraphIndex];
+                                        if (paragraph && paragraph.trim()) {
+                                            const ref = `${this.bookName}, ${section} ${chapter}:${paragraphIndex + 1}`;
+
+                                            const additionalVersions = this.getAdditionalVersionsForParagraph(chapterData.versions, selectedVersions, 0, paragraphIndex);
+                                            const commentaries = await this.getCommentariesForRef(ref, selectedCommentaries);
+
+                                            textData.push({
+                                                ref: ref,
+                                                section: section,
+                                                sectionHeTitle: this.getSectionHebrewTitle(section),
+                                                chapter: chapter,
+                                                chapterHeTitle: chapterTitle,
+                                                paragraph: paragraphIndex + 1,
+                                                he: paragraph,
+                                                en: this.getEnglishParagraph(chapterData.versions, 0, paragraphIndex),
+                                                selectedVersions: additionalVersions,
+                                                selectedCommentaries: commentaries,
+                                                displayTitle: `${section} ${chapter}:${paragraphIndex + 1}`,
+                                                bookName: this.bookName,
+                                                bookHeTitle: this.getBookHebrewTitle()
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (response.status === 404) {
+                            app.log(`📝 No more chapters found after ${chapter - 1}`);
+                            break;
+                        }
+                    } catch (error) {
+                        app.log(`❌ Error fetching chapter ${chapter}: ${error.message}`);
+                        break;
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+
+            extractTextFromVersion(version, chapterIndex, paragraphIndex) {
+                try {
+                    if (Array.isArray(version.text)) {
+                        if (Array.isArray(version.text[chapterIndex])) {
+                            return version.text[chapterIndex][paragraphIndex];
+                        } else {
+                            return version.text[chapterIndex];
+                        }
+                    } else {
+                        return version.text;
+                    }
+                } catch (error) {
+                    return '';
+                }
+            }
+
+            getEnglishParagraph(versions, chapterIndex, paragraphIndex) {
+                const englishVersion = versions.find(v => v.language === 'en');
+                if (!englishVersion || !englishVersion.text) return '';
+                return this.extractTextFromVersion(englishVersion, chapterIndex, paragraphIndex);
+            }
+
+            getEnglishChapter(versions, chapterIndex, specificVersion) {
+                const version = specificVersion || versions.find(v => v.language === 'en');
+                if (!version || !version.text) return '';
+                try {
+                    if (Array.isArray(version.text)) {
+                        return Array.isArray(version.text[chapterIndex])
+                            ? version.text[chapterIndex].join(' ')
+                            : version.text[chapterIndex] || '';
+                    } else {
+                        return version.text;
+                    }
+                } catch (error) {
+                    return '';
+                }
+            }
+
+            createWordDocument(textData) {
+                app.log(`📝 Creating Word document with ${textData.length} paragraphs`);
+
+                const bookHeTitle = textData.length > 0 ? textData[0].bookHeTitle : this.heTitle || this.bookName;
+
+                let html = `
+                <!DOCTYPE html>
+                <html dir="rtl" lang="he">
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { 
+                            font-family: 'David', 'Times New Roman', serif; 
+                            direction: rtl; 
+                            text-align: right;
+                            line-height: 1.6;
+                            margin: 1cm;
+                        }
+                        .main-title { 
+                            font-size: 28px; 
+                            font-weight: bold; 
+                            text-align: center; 
+                            margin-bottom: 40px;
+                            border-bottom: 3px solid #333;
+                            padding-bottom: 15px;
+                            color: #2c3e50;
+                        }
+                        .section-title {
+                            font-size: 22px;
+                            font-weight: bold;
+                            color: #8e44ad;
+                            margin: 30px 0 20px 0;
+                            border-bottom: 2px solid #8e44ad;
+                            padding-bottom: 8px;
+                        }
+                        .chapter-title {
+                            font-size: 18px;
+                            font-weight: bold;
+                            color: #2980b9;
+                            margin: 20px 0 15px 0;
+                            background-color: #ecf0f1;
+                            padding: 8px 15px;
+                            border-right: 4px solid #2980b9;
+                        }
+                        .verse-container { 
+                            margin-bottom: 25px; 
+                            padding: 15px;
+                            border: 1px solid #e0e0e0;
+                            border-radius: 8px;
+                            background-color: #fafafa;
+                        }
+                        .verse-number { 
+                            font-size: 14px; 
+                            font-weight: bold; 
+                            color: #666;
+                            margin-bottom: 10px;
+                            background-color: #e8e8e8;
+                            padding: 5px 10px;
+                            border-radius: 5px;
+                            display: inline-block;
+                        }
+                        .verse-text-hebrew { 
+                            font-size: 18px; 
+                            font-weight: bold; 
+                            color: #2c3e50;
+                            margin-bottom: 5px;
+                        }
+                        .verse-text-translation { 
+                            font-size: 16px; 
+                            color: #34495e;
+                            font-style: italic;
+                            margin-bottom: 10px;
+                        }
+                        .additional-version {
+                            margin: 10px 0;
+                            padding: 10px;
+                            background-color: #f9f9f9;
+                            border-right: 3px solid #3498db;
+                        }
+                        .version-title {
+                            font-weight: bold;
+                            color: #2980b9;
+                            margin-bottom: 5px;
+                        }
+                        .version-text {
+                            font-size: 16px;
+                            color: #2c3e50;
+                        }
+                        .commentary-title { 
+                            font-size: 16px; 
+                            font-weight: bold; 
+                            color: #8e44ad;
+                            margin-top: 15px;
+                            margin-bottom: 5px;
+                            border-bottom: 1px dashed #dcdcdc;
+                            padding-bottom: 3px;
+                        }
+                        .commentary-text { 
+                            font-size: 14px; 
+                            color: #555;
+                            margin-bottom: 10px;
+                            padding: 8px;
+                            background-color: #fdf6e3;
+                            border-right: 3px solid #8e44ad;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1 class="main-title">${bookHeTitle}</h1>
+                `;
+
+                let currentSection = '';
+                let currentChapter = '';
+
+                textData.forEach((item, index) => {
+                    app.log(`📄 Processing paragraph ${index + 1}: ${item.displayTitle}`);
+
+                    if (item.section !== currentSection) {
+                        currentSection = item.section;
+                        html += `<h2 class="section-title">${item.sectionHeTitle || item.section}</h2>`;
+                    }
+
+                    const chapterKey = `${item.section}_${item.chapter}`;
+                    if (chapterKey !== currentChapter) {
+                        currentChapter = chapterKey;
+                        html += `<h3 class="chapter-title">${item.chapterHeTitle || `פרק ${item.chapter}`}</h3>`;
+                    }
+
+                    const paragraphTitle = item.displayTitle || `פיסקה ${index + 1}`;
+                    const hebrewText = item.he || '';
+                    const englishText = item.en || '';
+
+                    html += `
+                    <div class="verse-container">
+                        <span class="verse-number">${paragraphTitle}</span>
+                        <div class="verse-text-hebrew">${hebrewText}</div>
+                        ${englishText ? `<div class="verse-text-translation">${englishText}</div>` : ''}
+                    `;
+
+                    if (item.selectedVersions && item.selectedVersions.length > 0) {
+                        item.selectedVersions.forEach(version => {
+                            html += `
+                            <div class="additional-version">
+                                <div class="version-title">${version.title}</div>
+                                <div class="version-text">${version.text}</div>
+                            </div>
+                            `;
+                        });
+                    }
+
+                    if (item.selectedCommentaries && item.selectedCommentaries.length > 0) {
+                        item.selectedCommentaries.forEach(commentary => {
+                            html += `
+                            <div class="commentary-title">${commentary.title}</div>
+                            <div class="commentary-text">${commentary.text}</div>
+                            `;
+                        });
+                    }
+
+                    html += `</div>`;
+                });
+
+                html += `
+                </body>
+                </html>
+                `;
+
+                app.log(`✅ Word document HTML created (${html.length} characters)`, 'success');
+                return html;
+            }
+
+            downloadDocument(content) {
+                const blob = new Blob([content], { type: 'application/msword' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${this.heTitle || this.bookName}_extract.doc`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                // הצג הודעת הצלחה
+                this.showSuccessMessage('✅ הקובץ הורד בהצלחה!');
+            }
+
+            showSuccessMessage(message) {
+                try {
+                    // מצא את חלק החילוץ
+                    const extractorSection = document.getElementById('extractorSection');
+                    if (!extractorSection) {
+                        app.log('❌ Extractor section not found', 'error');
+                        return;
+                    }
+
+                    // צור הודעת הצלחה
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'success';
+                    successDiv.innerHTML = message;
+                    successDiv.style.position = 'fixed';
+                    successDiv.style.top = '20px';
+                    successDiv.style.right = '20px';
+                    successDiv.style.zIndex = '9999';
+                    successDiv.style.minWidth = '300px';
+                    successDiv.style.borderRadius = '10px';
+                    successDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+
+                    // הוסף לגוף הדף
+                    document.body.appendChild(successDiv);
+
+                    // הסר אחרי 5 שניות
+                    setTimeout(() => {
+                        if (successDiv && successDiv.parentNode) {
+                            successDiv.parentNode.removeChild(successDiv);
+                        }
+                    }, 5000);
+
+                    app.log('✅ Success message displayed', 'success');
+                } catch (error) {
+                    app.log(`❌ Error showing success message: ${error.message}`, 'error');
+                }
+            }
+
+            showError(message) {
+                try {
+                    const errorDiv = document.getElementById('errorMsg');
+                    if (errorDiv) {
+                        errorDiv.textContent = message;
+                        errorDiv.style.display = 'block';
+                        setTimeout(() => {
+                            errorDiv.style.display = 'none';
+                        }, 5000);
+                    } else {
+                        // אם אין אלמנט שגיאה, צור הודעה זמנית
+                        const tempErrorDiv = document.createElement('div');
+                        tempErrorDiv.className = 'error';
+                        tempErrorDiv.textContent = message;
+                        tempErrorDiv.style.position = 'fixed';
+                        tempErrorDiv.style.top = '20px';
+                        tempErrorDiv.style.right = '20px';
+                        tempErrorDiv.style.zIndex = '9999';
+                        tempErrorDiv.style.minWidth = '300px';
+                        tempErrorDiv.style.borderRadius = '10px';
+                        tempErrorDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+
+                        document.body.appendChild(tempErrorDiv);
+
+                        setTimeout(() => {
+                            if (tempErrorDiv && tempErrorDiv.parentNode) {
+                                tempErrorDiv.parentNode.removeChild(tempErrorDiv);
+                            }
+                        }, 5000);
+                    }
+
+                    app.log(`❌ Error displayed: ${message}`, 'error');
+                } catch (error) {
+                    app.log(`❌ Error showing error message: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // יצירת משתנה גלובלי לאפליקציה
+        let app;
+
+        // אתחול כאשר הדף נטען
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new SefariaWebApp();
+        });
+    </script>
+</body>
+
+</html>
