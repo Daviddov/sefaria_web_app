@@ -4,442 +4,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ניווט ספריא משופר</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <title>ניווט ספריא </title>
+    <link rel="stylesheet" href="styles.css">
 
-        body {
-            font-family: 'Frank Ruhl Libre', 'David', 'Times New Roman', serif;
-            direction: rtl;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            border-top: 4px solid #18345d;
-        }
-
-        .header h1 {
-            color: #18345d;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-            font-weight: 700;
-        }
-
-        .header p {
-            color: #666;
-            font-size: 1.1em;
-        }
-
-        .breadcrumb {
-            background: linear-gradient(135deg, #18345d, #0d1d34);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(24, 52, 93, 0.3);
-        }
-
-        .nav-buttons {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
-        }
-
-        .btn:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 1px solid #e0e0e0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #18345d, #3498db);
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
-        }
-
-        .card:hover::before {
-            transform: scaleX(1);
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        }
-
-        .card-title {
-            font-weight: bold;
-            color: #18345d;
-            margin-bottom: 8px;
-            font-size: 1.1em;
-        }
-
-        .card-subtitle {
-            color: #666;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        .book-card {
-            border-right: 4px solid #18345d;
-        }
-
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.95);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(5px);
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #18345d;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            color: #18345d;
-            font-size: 1.2em;
-            font-weight: 600;
-        }
-
-        .progress-bar {
-            width: 300px;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 4px;
-            margin-top: 15px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #18345d, #3498db);
-            width: 0%;
-            transition: width 0.3s ease;
-            border-radius: 4px;
-        }
-
-        .section {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border: 1px solid #e0e0e0;
-        }
-
-        .section h3 {
-            margin-bottom: 20px;
-            color: #18345d;
-            font-size: 1.3em;
-            font-weight: 600;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 10px;
-        }
-
-        select, input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-            background: white;
-        }
-
-        select:focus, input:focus {
-            outline: none;
-            border-color: #18345d;
-            box-shadow: 0 0 0 3px rgba(24, 52, 93, 0.1);
-        }
-
-        .checkbox-group {
-            max-height: 250px;
-            overflow-y: auto;
-            border: 2px solid #e0e0e0;
-            padding: 15px;
-            border-radius: 8px;
-            background: #fafafa;
-        }
-
-        .checkbox-group label {
-            display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 6px;
-            transition: background-color 0.2s ease;
-        }
-
-        .checkbox-group label:hover {
-            background-color: #f0f8ff;
-        }
-
-        .checkbox-group input {
-            width: auto;
-            margin-left: 10px;
-            margin-bottom: 0;
-        }
-
-        .paragraph-selector {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-
-        .generate-btn {
-            background: linear-gradient(135deg, #27ae60, #229954);
-            color: white;
-            padding: 18px 35px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
-        }
-
-        .generate-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
-        }
-
-        .generate-btn:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .debug-panel {
-            background: #2c3e50;
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #34495e;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .error {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
-        }
-
-        .success {
-            background: linear-gradient(135deg, #27ae60, #229954);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
-        }
-
-        .step {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .api-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 15px;
-        }
-
-        .api-status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .api-status.loading {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-
-        .api-status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border: 1px solid #e0e0e0;
-        }
-
-        .stat-number {
-            font-size: 2em;
-            font-weight: bold;
-            color: #18345d;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-            
-            .header h1 {
-                font-size: 2em;
-            }
-            
-            .grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .paragraph-selector {
-                grid-template-columns: 1fr;
-            }
-            
-            .nav-buttons {
-                flex-direction: column;
-            }
-            
-            .btn {
-                width: 100%;
-            }
-        }
-    </style>
 </head>
 
 <body>
     <div class="container">
         <div class="header">
             <h1>🏛️ ניווט ספריא</h1>
-            <p>נווט בספרי הקודש בצורה חכמה ויצא מסמכים מקצועיים</p>
+            <p>נווט בספרי הקודש בחר טקסטים ומפרשים</p>
         </div>
 
         <!-- שלב 1: ניווט לקטגוריות -->
         <div id="categoriesStep" class="step">
             <div class="breadcrumb" id="breadcrumb">📍 דף הבית</div>
-            <div class="api-status hidden" id="apiStatus">
-                <span class="status-dot"></span>
-                <span class="status-text">מתחבר לספריא...</span>
-            </div>
 
             <div class="nav-buttons">
                 <button class="btn" id="backBtn" disabled>🔙 חזור</button>
@@ -447,11 +26,11 @@
             </div>
 
             <div id="contentArea">
-                <div class="loading">טוען קטגוריות...</div>
+                <div class="loading">טוען...</div>
             </div>
         </div>
 
-        <!-- שלב 2: בחירת section -->
+        <!-- שלב 2: בחירת section (עבור ספרים מורכבים) -->
         <div id="sectionStep" class="step hidden">
             <div class="breadcrumb" id="sectionBreadcrumb">📍 בחירת חלק</div>
 
@@ -498,33 +77,18 @@
                 <button class="btn" id="homeFromParagraphBtn">🏠 דף הבית</button>
             </div>
 
-            <div class="stats-container" id="statsContainer">
-                <div class="stat-card">
-                    <div class="stat-number" id="totalVerses">-</div>
-                    <div class="stat-label">פסוקים זמינים</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="selectedRange">-</div>
-                    <div class="stat-label">פסוקים נבחרים</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="commentariesCount">-</div>
-                    <div class="stat-label">מפרשים זמינים</div>
-                </div>
-            </div>
-
             <div class="section">
                 <h3>📄 פרק נבחר: <span id="selectedChapterTitle"></span></h3>
 
                 <div class="paragraph-selector">
                     <div>
-                        <label>פסוק התחלה:</label>
+                        <label>פיסקא התחלה:</label>
                         <select id="startParagraph">
                             <option value="">בחר התחלה...</option>
                         </select>
                     </div>
                     <div>
-                        <label>פסוק סוף:</label>
+                        <label>פיסקא סוף:</label>
                         <select id="endParagraph">
                             <option value="">בחר סוף...</option>
                         </select>
@@ -535,67 +99,50 @@
             <div class="section">
                 <h3>📚 גירסאות נוספות:</h3>
                 <div id="versionsContainer" class="checkbox-group">
-                    <div>בחר פסוקים תחילה</div>
+                    <div>בחר פיסקאות תחילה</div>
                 </div>
             </div>
 
             <div class="section">
                 <h3>📝 מפרשים:</h3>
                 <div id="commentariesContainer" class="checkbox-group">
-                    <div>בחר פסוקים תחילה</div>
+                    <div>בחר פיסקאות תחילה</div>
                 </div>
             </div>
 
-            <button class="generate-btn" id="generateBtn" disabled>📄 יצור מסמך מקצועי</button>
+            <button class="generate-btn" id="generateBtn" disabled>📄 יצור מסמך</button>
+            <div class="loading hidden" id="generateLoading">מייצר מסמך...</div>
         </div>
 
         <!-- פאנל דיבוג -->
         <div class="section">
-            <h3>🔧 מידע טכני:</h3>
-            <button class="btn" id="clearDebugBtn">🗑️ נקה לוג</button>
+            <h3>🔧 דיבוג:</h3>
+            <button class="btn" id="clearDebugBtn">🗑️ נקה</button>
             <div class="debug-panel" id="debugPanel">
-                <div>📱 אפליקציה מופעלת</div>
+                <div>📱 Application started</div>
             </div>
-        </div>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div class="loading-overlay hidden" id="loadingOverlay">
-        <div class="spinner"></div>
-        <div class="loading-text" id="loadingText">טוען נתונים...</div>
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
         </div>
     </div>
 
     <script>
         class SefariaNavigator {
             constructor() {
-                this.baseUrl = 'https://www.sefaria.org/api';
-                this.currentPath = [];
-                this.currentBook = null;
-                this.currentSection = null;
-                this.currentSubSection = null; // הוספה של רמת תת-חלק נוספת
-                this.currentChapter = null;
-                this.bookData = null;
-                this.chapterData = null;
-                this.commentaryCache = new Map();
-                this.versionCache = new Map();
-                this.apiStats = {
-                    totalCalls: 0,
-                    successCalls: 0,
-                    failedCalls: 0,
-                    cacheHits: 0
-                };
-                
-                this.init();
-            }
+    this.baseUrl = 'https://www.sefaria.org/api';
+    this.currentPath = [];
+    this.currentBook = null;
+    this.currentSection = null;
+    this.currentChapter = null;
+    this.bookData = null;
+    this.chapterData = null;
+    this.commentaryCache = new Map(); // חשוב שיהיה cache זה
+    
+    this.init();
+}
 
             init() {
-                this.log('🚀 מתחיל ניווט ספריא משופר...');
+                this.log('🚀 Starting Sefaria Navigator...');
                 this.setupEventListeners();
                 this.loadCategories();
-                this.updateApiStatus('מתחבר לספריא...', 'loading');
             }
 
             setupEventListeners() {
@@ -612,16 +159,7 @@
 
                 // בחירות
                 document.getElementById('sectionSelect').addEventListener('change', () => this.onSectionSelect());
-                document.getElementById('chapterSelect').addEventListener('change', () => {
-                    const selectedOption = document.getElementById('chapterSelect').options[document.getElementById('chapterSelect').selectedIndex];
-                    if (selectedOption && selectedOption.dataset.isFinalPrayer === 'true') {
-                        this.handleFinalPrayerSelection();
-                    } else if (selectedOption && selectedOption.dataset.hasSubNodes === 'true') {
-                        this.handleSubCategorySelection();
-                    } else {
-                        this.onChapterSelect();
-                    }
-                });
+                document.getElementById('chapterSelect').addEventListener('change', () => this.onChapterSelect());
                 document.getElementById('startParagraph').addEventListener('change', () => this.onParagraphRangeChange());
                 document.getElementById('endParagraph').addEventListener('change', () => this.onParagraphRangeChange());
 
@@ -631,77 +169,87 @@
                 // דיבוג
                 document.getElementById('clearDebugBtn').addEventListener('click', () => this.clearDebug());
             }
+goBack() {
 
-            showLoading(text = 'טוען נתונים...', progress = 0) {
-                const overlay = document.getElementById('loadingOverlay');
-                const loadingText = document.getElementById('loadingText');
-                const progressFill = document.getElementById('progressFill');
-                
-                overlay.classList.remove('hidden');
-                loadingText.textContent = text;
-                progressFill.style.width = progress + '%';
+    if (this.currentPath.length > 0) {
+        this.currentPath.pop();
+        if (this.currentPath.length === 0) {
+            this.loadCategories();
+        } else {
+            const parent = this.currentPath[this.currentPath.length - 1];
+            this.navigateToCategory(parent);
+            this.currentPath.pop();
+        }
+        this.updateBreadcrumb();
+        this.updateBackButton();
+    } else {
+    }
+}
+
+
+            goHome() {
+                // איפוס כל הנתונים
+                this.currentPath = [];
+                this.currentBook = null;
+                this.currentSection = null;
+                this.currentChapter = null;
+
+                // הסתרת כל הצעדים פרט לצעד הראשון
+                document.getElementById('categoriesStep').classList.remove('hidden');
+                document.getElementById('sectionStep').classList.add('hidden');
+                document.getElementById('chapterStep').classList.add('hidden');
+                document.getElementById('paragraphStep').classList.add('hidden');
+
+                // טעינת הקטגוריות מחדש
+                this.loadCategories();
+                this.updateBreadcrumb();
+                this.updateBackButton();
+
+                this.log('🏠 חזרה לדף הבית');
             }
 
-            hideLoading() {
-                document.getElementById('loadingOverlay').classList.add('hidden');
+            backToBook() {
+                // איפוס הסקשן הנוכחי
+                this.currentSection = null;
+
+                // הסתרת כל הצעדים מלבד צעד הקטגוריות
+                document.getElementById('sectionStep').classList.add('hidden');
+                document.getElementById('chapterStep').classList.add('hidden');
+                document.getElementById('paragraphStep').classList.add('hidden');
+                document.getElementById('categoriesStep').classList.remove('hidden');
+
+                this.log('📖 חזרה לבחירת ספר');
             }
 
-            updateApiStatus(text, status = 'success') {
-                const statusEl = document.getElementById('apiStatus');
-                const statusText = statusEl.querySelector('.status-text');
-                
-                statusEl.className = `api-status ${status}`;
-                statusEl.classList.remove('hidden');
-                
-                if (statusText) {
-                    statusText.textContent = text;
-                } else {
-                    statusEl.innerHTML = `<span class="status-text">${text}</span>`;
-                }
+            backToSection() {
+                // הסתרת צעדי הפרק והפיסקאות
+                document.getElementById('chapterStep').classList.add('hidden');
+                document.getElementById('paragraphStep').classList.add('hidden');
+
+                // הצגת צעד הסקשן
+                document.getElementById('sectionStep').classList.remove('hidden');
+
+                this.log('📑 חזרה לבחירת סקשן');
             }
 
-            async makeApiCall(url, description = 'API call') {
-                this.apiStats.totalCalls++;
-                
-                try {
-                    this.log(`🌐 ${description}: ${url}`);
-                    const response = await fetch(url);
-                    
-                    if (response.ok) {
-                        this.apiStats.successCalls++;
-                        const data = await response.json();
-                        this.log(`✅ ${description} הושלם בהצלחה`);
-                        return data;
-                    } else {
-                        this.apiStats.failedCalls++;
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-                } catch (error) {
-                    this.apiStats.failedCalls++;
-                    this.log(`❌ שגיאה ב-${description}: ${error.message}`, null, 'error');
-                    throw error;
-                }
-            }
+            backToChapter() {
+                // הסתרת צעד הפיסקאות
+                document.getElementById('paragraphStep').classList.add('hidden');
 
-            getCacheKey(...parts) {
-                return parts.join('_');
-            }
+                // הצגת צעד הפרק
+                document.getElementById('chapterStep').classList.remove('hidden');
 
+                this.log('🔢 חזרה לבחירת פרק');
+            }
             async loadCategories() {
                 try {
-                    this.showLoading('טוען קטגוריות...', 10);
-                    this.updateApiStatus('טוען קטגוריות...', 'loading');
-                    
-                    const data = await this.makeApiCall(`${this.baseUrl}/index`, 'טעינת קטגוריות');
-                    
-                    this.showLoading('מעבד קטגוריות...', 50);
+                    this.log('📚 Loading categories...');
+                    const response = await fetch(`${this.baseUrl}/index`);
+                    const data = await response.json();
+
                     this.displayCategories(data);
-                    
-                    this.updateApiStatus('מחובר לספריא ✓', 'success');
-                    this.hideLoading();
                 } catch (error) {
-                    this.hideLoading();
-                    this.updateApiStatus('שגיאה בחיבור לספריא', 'error');
+                    this.log(`❌ Error loading categories: ${error.message}`, 'error');
                     this.showError('שגיאה בטעינת הקטגוריות');
                 }
             }
@@ -711,7 +259,7 @@
                 contentArea.innerHTML = '';
 
                 if (!Array.isArray(categories)) {
-                    this.log('❌ הקטגוריות אינן מערך:', categories, 'error');
+                    this.log('❌ Categories is not an array:', categories, 'error');
                     return;
                 }
 
@@ -735,26 +283,23 @@
 
             async navigateToCategory(category) {
                 try {
-                    this.showLoading(`טוען ${category.heCategory || category.category}...`, 20);
-                    this.log(`🔍 נווט לקטגוריה: ${category.category}`);
+                    this.log(`🔍 Navigating to category: ${category.category}`);
                     this.currentPath.push(category);
 
                     if (category.contents) {
                         this.displayContents(category.contents);
                     } else {
-                        const data = await this.makeApiCall(
-                            `${this.baseUrl}/index/${encodeURIComponent(category.category)}`,
-                            `טעינת קטגוריה ${category.category}`
-                        );
+                        // טען תוכן הקטגוריה
+                        const response = await fetch(`${this.baseUrl}/index/${encodeURIComponent(category.category)}`);
+                        const data = await response.json();
+
                         this.displayContents(data.contents || []);
                     }
 
                     this.updateBreadcrumb();
                     this.updateBackButton();
-                    this.hideLoading();
                 } catch (error) {
-                    this.hideLoading();
-                    this.showError('שגיאה בטעינת הקטגוריה');
+                    this.log(`❌ Error navigating to category: ${error.message}`, 'error');
                 }
             }
 
@@ -763,7 +308,7 @@
                 contentArea.innerHTML = '';
 
                 if (!Array.isArray(contents)) {
-                    this.log('❌ התוכן אינו מערך:', contents, 'error');
+                    this.log('❌ Contents is not an array:', contents, 'error');
                     return;
                 }
 
@@ -772,6 +317,7 @@
 
                 contents.forEach(item => {
                     if (item.category) {
+                        // זוהי תת-קטגוריה
                         const card = this.createCard(
                             item.category,
                             item.heCategory || '',
@@ -779,6 +325,7 @@
                         );
                         grid.appendChild(card);
                     } else if (item.title) {
+                        // זהו ספר
                         const card = this.createCard(
                             item.title,
                             item.heTitle || '',
@@ -799,11 +346,11 @@
 
                 const titleEl = document.createElement('div');
                 titleEl.className = 'card-title';
-                titleEl.textContent = title;
+                titleEl.textContent = subtitle;
 
                 const subtitleEl = document.createElement('div');
                 subtitleEl.className = 'card-subtitle';
-                subtitleEl.textContent = subtitle;
+                subtitleEl.textContent = title;
 
                 card.appendChild(titleEl);
                 card.appendChild(subtitleEl);
@@ -811,167 +358,34 @@
                 return card;
             }
 
-            async selectBook(book) {
-                try {
-                    this.showLoading(`טוען ספר ${book.heTitle || book.title}...`, 30);
-                    this.log(`📖 נבחר ספר: ${book.title}`);
-                    this.currentBook = book;
-                    
-                    this.commentaryCache.clear();
-                    this.versionCache.clear();
-                    this.log('🧹 ניקה cache');
+async selectBook(book) {
+    try {
+        this.log(`📖 Selected book: ${book.title}`);
+        this.currentBook = book;
+        
+        // נקה cache פירושים עבור ספר חדש
+        this.commentaryCache.clear();
+        this.log('🧹 Cleared commentary cache');
 
-                    this.bookData = await this.makeApiCall(
-                        `${this.baseUrl}/v2/raw/index/${encodeURIComponent(book.title)}`,
-                        `טעינת מידע ספר ${book.title}`
-                    );
+        // טען מידע על הספר מ-API v2 raw index
+        const v2Response = await fetch(`${this.baseUrl}/v2/raw/index/${encodeURIComponent(book.title)}`);
+        this.bookData = await v2Response.json();
+        
 
-                    this.log('📊 מבנה הספר:', this.bookData);
-
-                    // בדוק אם זהו מילון
-                    if (this.isDictionary(this.bookData)) {
-                        this.log('📖 זהו מילון');
-                        this.showDictionaryStep();
-                        this.hideLoading();
-                        return;
-                    }
-
-                    if (this.bookData.schema && this.bookData.schema.nodes && this.bookData.schema.nodes.length > 0) {
-                        this.log(`📚 ספר מורכב עם ${this.bookData.schema.nodes.length} חלקים`);
-                        this.showSectionStep();
-                    } else {
-                        this.log('📖 ספר פשוט');
-                        this.showChapterStep();
-                        this.populateChapters();
-                    }
-                    
-                    this.hideLoading();
-                } catch (error) {
-                    this.hideLoading();
-                    this.showError('שגיאה בטעינת הספר');
-                }
-            }
-
-            isDictionary(bookData) {
-                // בדוק אם יש DictionaryNode במבנה
-                if (bookData.schema && bookData.schema.nodes) {
-                    return bookData.schema.nodes.some(node => node.nodeType === 'DictionaryNode');
-                }
-                
-                // בדוק אם יש lexiconName
-                if (bookData.lexiconName) {
-                    return true;
-                }
-                
-                // בדוק קטגוריות
-                if (bookData.categories && bookData.categories.includes('Dictionary')) {
-                    return true;
-                }
-                
-                return false;
-            }
-
-            showDictionaryStep() {
-                this.log('📖 מציג ממשק מילון');
-                
-                // הסתר את כל הצעדים הרגילים
-                document.getElementById('categoriesStep').classList.add('hidden');
-                document.getElementById('sectionStep').classList.add('hidden');
-                document.getElementById('chapterStep').classList.add('hidden');
-                document.getElementById('paragraphStep').classList.add('hidden');
-                
-                // צור ממשק מיוחד למילון
-                this.createDictionaryInterface();
-            }
-
-            createDictionaryInterface() {
-                const container = document.querySelector('.container');
-                
-                // הסר ממשק מילון קיים אם יש
-                const existingDict = document.getElementById('dictionaryStep');
-                if (existingDict) {
-                    existingDict.remove();
-                }
-                
-                // צור ממשק חדש למילון
-                const dictionaryStep = document.createElement('div');
-                dictionaryStep.id = 'dictionaryStep';
-                dictionaryStep.className = 'step';
-                dictionaryStep.innerHTML = `
-                    <div class="breadcrumb">📍 מילון > ${this.currentBook.heTitle || this.currentBook.title}</div>
-                    
-                    <div class="nav-buttons">
-                        <button class="btn" id="backToBooksFromDict">🔙 חזור לספרים</button>
-                        <button class="btn" id="homeFromDict">🏠 דף הבית</button>
-                    </div>
-                    
-                    <div class="section">
-                        <h3>🔍 חיפוש במילון: ${this.currentBook.heTitle || this.currentBook.title}</h3>
-                        <p style="color: #666; margin-bottom: 20px;">
-                            מילון זה מכיל ${this.getDictionaryInfo()} ויש להשתמש בחיפוש באתר ספריא ישירות.
-                        </p>
-                        
-                        <div style="background: #f0f8ff; padding: 20px; border-radius: 10px; border-right: 4px solid #3498db;">
-                            <h4>💡 איך להשתמש במילון:</h4>
-                            <ol style="margin-top: 15px; padding-right: 20px;">
-                                <li>היכנס לאתר ספריא: <a href="https://www.sefaria.org" target="_blank" style="color: #3498db;">sefaria.org</a></li>
-                                <li>חפש "${this.currentBook.title}" בתיבת החיפוש</li>
-                                <li>הקלד את המילה שאתה מחפש</li>
-                                <li>המילון יציג את ההגדרה המלאה</li>
-                            </ol>
-                        </div>
-                        
-                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 20px; border-right: 4px solid #ffc107;">
-                            <strong>📝 הערה:</strong> מילונים דורשים חיפוש ולא ניתן ליצור מהם מסמכים רגילים כמו ספרים אחרים.
-                        </div>
-                    </div>
-                `;
-                
-                container.appendChild(dictionaryStep);
-                
-                // הוסף event listeners לכפתורי הניווט
-                document.getElementById('backToBooksFromDict').addEventListener('click', () => {
-                    this.backToBooks();
-                });
-                
-                document.getElementById('homeFromDict').addEventListener('click', () => {
-                    this.goHome();
-                });
-                
-                this.log('📖 ממשק מילון נוצר');
-            }
-
-            getDictionaryInfo() {
-                if (this.bookData.lexiconName) {
-                    return `מילון ${this.bookData.lexiconName}`;
-                }
-                
-                if (this.bookData.schema && this.bookData.schema.nodes) {
-                    const dictNode = this.bookData.schema.nodes.find(node => node.nodeType === 'DictionaryNode');
-                    if (dictNode && dictNode.headwordMap) {
-                        return `כ-${dictNode.headwordMap.length} אותיות עם אלפי מילים`;
-                    }
-                }
-                
-                return 'מילון מקיף';
-            }
-
-            backToBooks() {
-                // הסר את ממשק המילון
-                const dictionaryStep = document.getElementById('dictionaryStep');
-                if (dictionaryStep) {
-                    dictionaryStep.remove();
-                }
-                
-                // חזור לצעד הקטגוריות
-                document.getElementById('categoriesStep').classList.remove('hidden');
-                
-                // איפוס משתנים
-                this.currentBook = null;
-                this.bookData = null;
-                
-                this.log('📚 חזרה לבחירת ספרים');
-            }
+        // בדוק אם זהו ספר מורכב (עם sections) או פשוט
+        if (this.bookData.schema && this.bookData.schema.nodes && this.bookData.schema.nodes.length > 0) {
+            this.log(`📚 Complex book with ${this.bookData.schema.nodes.length} sections`);
+            this.showSectionStep();
+        } else {
+            this.log('📖 Simple book structure');
+            this.showChapterStep();
+            this.populateChapters();
+        }
+    } catch (error) {
+        this.log(`❌ Error selecting book: ${error.message}`, 'error');
+        this.showError('שגיאה בטעינת הספר');
+    }
+}
 
             showSectionStep() {
                 document.getElementById('categoriesStep').classList.add('hidden');
@@ -984,6 +398,7 @@
                 const sectionSelect = document.getElementById('sectionSelect');
                 sectionSelect.innerHTML = '<option value="">בחר חלק...</option>';
 
+
                 if (this.bookData.schema && this.bookData.schema.nodes) {
                     this.bookData.schema.nodes.forEach((section, index) => {
                         const option = document.createElement('option');
@@ -992,7 +407,7 @@
                         option.dataset.index = index;
                         sectionSelect.appendChild(option);
                     });
-                    this.log(`📑 הוסף ${this.bookData.schema.nodes.length} חלקים`);
+                    this.log(`📑 Added ${this.bookData.schema.nodes.length} sections`);
                 }
             }
 
@@ -1002,6 +417,7 @@
 
                 if (!selectedOption.value) return;
 
+
                 this.currentSection = {
                     key: selectedOption.value,
                     index: parseInt(selectedOption.dataset.index),
@@ -1009,7 +425,7 @@
                     data: this.bookData.schema.nodes[selectedOption.dataset.index],
                 };
 
-                this.log(`📑 נבחר חלק: ${this.currentSection.title}`, this.currentSection);
+                this.log(`📑 Selected section: ${this.currentSection.title}`, this.currentSection);
                 this.showChapterStep();
                 this.populateChaptersForSection();
             }
@@ -1019,44 +435,13 @@
                 chapterSelect.innerHTML = '<option value="">בחר פרק...</option>';
 
                 const sectionData = this.currentSection.data;
-                this.log('📊 נתוני חלק:', sectionData);
 
-                // בדוק אם יש nodes מקוננים (כמו בסידור)
-                if (sectionData.nodes && Array.isArray(sectionData.nodes)) {
-                    this.log('📚 נמצאו תת-חלקים מקוננים');
-                    
-                    // אם יש nodes, זה לא רמת הפרקים אלא רמת תת-חלקים
-                    // נציג את התת-חלקים כאפשרויות
-                    sectionData.nodes.forEach((subSection, index) => {
-                        const option = document.createElement('option');
-                        option.value = subSection.key || subSection.title || (index + 1);
-                        
-                        // נסה למצוא כותרת עברית
-                        let displayName = subSection.key || subSection.title || `חלק ${index + 1}`;
-                        if (subSection.titles && subSection.titles.length > 1) {
-                            displayName = subSection.titles[1].text || displayName;
-                        }
-                        
-                        option.textContent = displayName;
-                        option.dataset.index = index;
-                        option.dataset.isSubSection = 'true';
-                        chapterSelect.appendChild(option);
-                    });
-                    
-                    this.log(`📑 הוסף ${sectionData.nodes.length} תת-חלקים`);
-                    
-                    // עדכן את הכותרת לרמת תת-חלקים
-                    const chapterStepTitle = document.querySelector('#chapterStep h3:nth-of-type(3)');
-                    if (chapterStepTitle) {
-                        chapterStepTitle.textContent = '🔢 בחר תת-חלק:';
-                    }
-                    
-                } else if (sectionData.index_offsets_by_depth && sectionData.index_offsets_by_depth["2"]) {
-                    // הלוגיקה המקורית לספרים עם offsets
+                // חשב כמה פרקים יש בסקשן הזה
+                if (sectionData.index_offsets_by_depth && sectionData.index_offsets_by_depth["2"]) {
                     const offsets = sectionData.index_offsets_by_depth["2"];
                     const numChapters = offsets.length;
 
-                    this.log(`📖 לחלק יש ${numChapters} פרקים`);
+                    this.log(`📖 Section has ${numChapters} chapters`);
 
                     for (let i = 1; i <= numChapters; i++) {
                         const option = document.createElement('option');
@@ -1064,44 +449,15 @@
                         option.textContent = `פרק ${i}`;
                         chapterSelect.appendChild(option);
                     }
-                    
-                } else if (sectionData.content_counts && Array.isArray(sectionData.content_counts)) {
-                    // נסה לשמוש ב-content_counts
-                    const numChapters = sectionData.content_counts.length;
-                    this.log(`📖 משתמש ב-content_counts: ${numChapters} פרקים`);
-                    
-                    for (let i = 1; i <= numChapters; i++) {
-                        const option = document.createElement('option');
-                        option.value = i;
-                        option.textContent = `פרק ${i}`;
-                        chapterSelect.appendChild(option);
-                    }
-                    
+
+                    // עדכן UI
+                    document.getElementById('selectedSectionTitle').classList.remove('hidden');
+                    console.log(this.currentSection, "current section");
+
+                    document.getElementById('selectedSectionName').textContent = this.currentSection.title;
                 } else {
-                    // fallback - ניסה לנחש לפי מבנה הספר
-                    this.log('⚠️ לא נמצא מידע פרקים ברור, משתמש ב-fallback');
-                    
-                    // אם זהו תת-חלק סופי עם depth 1, זה כנראה פיסקאות ולא פרקים
-                    if (sectionData.depth === 1) {
-                        this.log('📄 זהו חלק עם פיסקאות ישירות');
-                        const option = document.createElement('option');
-                        option.value = 1;
-                        option.textContent = 'פיסקאות';
-                        chapterSelect.appendChild(option);
-                    } else {
-                        // ברירת מחדל - נניח שיש כמה פרקים
-                        for (let i = 1; i <= 10; i++) {
-                            const option = document.createElement('option');
-                            option.value = i;
-                            option.textContent = `פרק ${i}`;
-                            chapterSelect.appendChild(option);
-                        }
-                        this.log('📚 הוסף 10 פרקים כברירת מחדל');
-                    }
+                    this.log('❌ No chapter information found for section', 'error');
                 }
-
-                document.getElementById('selectedSectionTitle').classList.remove('hidden');
-                document.getElementById('selectedSectionName').textContent = this.currentSection.title;
             }
 
             showChapterStep() {
@@ -1110,6 +466,7 @@
                 document.getElementById('chapterStep').classList.remove('hidden');
                 document.getElementById('selectedBookTitle').textContent = this.currentBook.heTitle || this.currentBook.title;
 
+                // הסתר או הצג את מידע הסקשן
                 if (this.currentSection) {
                     document.getElementById('selectedSectionTitle').classList.remove('hidden');
                     document.getElementById('selectedSectionName').textContent = this.currentSection.title;
@@ -1120,422 +477,288 @@
                 }
             }
 
-            populateChapters() {
-                const chapterSelect = document.getElementById('chapterSelect');
-                chapterSelect.innerHTML = '<option value="">בחר פרק...</option>';
+           populateChapters() {
+    const chapterSelect = document.getElementById('chapterSelect');
+    chapterSelect.innerHTML = '<option value="">בחר פרק...</option>';
 
-                let chapterCount = 0;
-                
-                this.log('📊 מבנה ספר:', this.bookData);
-                
-                // בדוק אם זהו ספר חד-פרקי (כמו מאמרים או טקסטים קצרים)
-                if (this.isSingleChapterBook()) {
-                    this.log('📄 ספר חד-פרקי');
-                    const option = document.createElement('option');
-                    option.value = 1;
-                    option.textContent = 'טקסט מלא';
-                    chapterSelect.appendChild(option);
-                    return;
+    // בדוק את המבנה של הספר לקבלת מספר הפרקים
+    let chapterCount = 0;
+    
+    this.log('📊 Book structure:', this.bookData);
+    
+    // נסה למצוא את מספר הפרקים בדרכים שונות בהתאם למבנה הספר
+    if (this.bookData.schema && this.bookData.schema.lengths && this.bookData.schema.lengths.length > 0) {
+        // שימוש ב-schema.lengths לספרים חדשים
+        chapterCount = this.bookData.schema.lengths[0];
+        this.log(`📚 Using schema.lengths: ${chapterCount} chapters`);
+    } else if (this.bookData.schema && this.bookData.schema.content_counts && this.bookData.schema.content_counts.length > 0) {
+        // שימוש ב-schema.content_counts לחלק מהספרים
+        chapterCount = this.bookData.schema.content_counts.length;
+        this.log(`📚 Using schema.content_counts: ${chapterCount} chapters`);
+    } else if (this.bookData.lengths && this.bookData.lengths.length > 0) {
+        // שימוש ב-lengths לספרים ישנים
+        chapterCount = this.bookData.lengths[0];
+        this.log(`📚 Using book.lengths: ${chapterCount} chapters`);
+    } else if (this.bookData.alt_structs && this.bookData.alt_structs.Parasha && this.bookData.alt_structs.Parasha.nodes) {
+        // התמודדות עם ספרים שמאורגנים לפי פרשות
+        chapterCount = this.estimateChaptersFromParashiot(this.bookData.alt_structs.Parasha.nodes);
+        this.log(`📚 Estimated from Parashot: ${chapterCount} chapters`);
+    } else {
+        // אם אין לנו מידע מדויק, נשתמש במספר ברירת מחדל
+        chapterCount = 50; // מספר גדול לחומש
+        this.log(`📚 Using default chapter count: ${chapterCount}`);
+    }
+    
+    // הוסף את האפשרויות לבחירת הפרק
+    for (let i = 1; i <= chapterCount; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `פרק ${i}`;
+        chapterSelect.appendChild(option);
+    }
+    
+    this.log(`📚 Added ${chapterCount} chapters to select menu`);
+}
+// פונקציית עזר להערכת מספר הפרקים מרשימת פרשיות
+estimateChaptersFromParashiot(parashiot) {
+    try {
+        let maxChapter = 0;
+        
+        for (const parasha of parashiot) {
+            if (parasha.wholeRef) {
+                // נסה לחלץ את המספרים מהפניה
+                const match = parasha.wholeRef.match(/(\d+):(\d+)-(\d+):(\d+)/);
+                if (match && match[3]) {
+                    const endChapter = parseInt(match[3]);
+                    if (endChapter > maxChapter) {
+                        maxChapter = endChapter;
+                    }
                 }
+            }
+        }
+        
+        return maxChapter || 50; // ברירת מחדל אם לא מצאנו
+    } catch (error) {
+        this.log(`❌ Error estimating chapters from parashiot: ${error.message}`, 'error');
+        return 50; // ברירת מחדל
+    }
+}
+async onChapterSelect() {
+    const chapterNum = document.getElementById('chapterSelect').value;
+    if (!chapterNum) return;
+
+    try {
+        this.log(`📄 Loading chapter ${chapterNum}`);
+        this.currentChapter = chapterNum;
+
+        // בנה את ההפניה בהתאם לסוג הספר
+        let chapterRef;
+        if (this.currentSection) {
+            chapterRef = `${this.currentBook.title}, ${this.currentSection.key} ${chapterNum}`;
+        } else {
+            chapterRef = `${this.currentBook.title} ${chapterNum}`;
+        }
+
+        this.log(`🔗 Chapter reference: ${chapterRef}`);
+
+        // שלוף את מידע הפרק כדי לקבל כותרות נכונות
+        const chapterInfoResponse = await fetch(`${this.baseUrl}/texts/${encodeURIComponent(chapterRef)}`);
+        const chapterInfo = await chapterInfoResponse.json();
+
+        // שמור מידע נוסף על הפרק
+        this.chapterInfo = {
+            heTitle: chapterInfo.heTitle || '',
+            heSectionRef: chapterInfo.heSectionRef || '',
+            bookTitle: chapterInfo.book || this.currentBook.title,
+            heBook: chapterInfo.heBook || '',
+            // טפל במקרה שאין offset
+            offset: chapterInfo.index_offsets_by_depth?.["2"]?.[0] || 0
+        };
+        
+
+        // עבור ספרים פשוטים, אנחנו כבר קיבלנו את כל המידע בשלב זה
+        const isSimpleBook = !this.currentSection;
+        if (isSimpleBook && chapterInfo.he && Array.isArray(chapterInfo.he)) {
+            this.chapterData = chapterInfo;
+            this.log('📚 Direct use of chapter data for simple book');
+        } else {
+            // שלוף פיסקא אחר פיסקא במקום כל הפרק עבור ספרים מורכבים
+            await this.loadParagraphByParagraph(chapterRef);
+        }
+
+        this.showParagraphStep();
+        this.populateParagraphs();
+    } catch (error) {
+        this.log(`❌ Error loading chapter: ${error.message}`, 'error');
+        this.showError('שגיאה בטעינת הפרק');
+    }
+}
+
+           async loadParagraphByParagraph(chapterRef) {
+    this.log(`📝 Loading paragraphs for: ${chapterRef}`);
+    
+    // בדוק אם זה ספר פשוט או מורכב
+    const isSimpleBook = !this.currentSection;
+    
+    if (isSimpleBook) {
+        // עבור ספר פשוט - טען את כל הפרק בבת אחת
+        try {
+            this.log(`📚 Loading entire chapter at once for simple book: ${chapterRef}`);
+            const response = await fetch(`${this.baseUrl}/texts/${encodeURIComponent(chapterRef)}`);
+            
+            if (response.ok) {
+                const chapterData = await response.json();
                 
-                if (this.bookData.schema && this.bookData.schema.lengths && this.bookData.schema.lengths.length > 0) {
-                    chapterCount = this.bookData.schema.lengths[0];
-                    this.log(`📚 משתמש ב-schema.lengths: ${chapterCount} פרקים`);
-                } else if (this.bookData.schema && this.bookData.schema.content_counts && this.bookData.schema.content_counts.length > 0) {
-                    chapterCount = this.bookData.schema.content_counts.length;
-                    this.log(`📚 משתמש ב-schema.content_counts: ${chapterCount} פרקים`);
-                } else if (this.bookData.lengths && this.bookData.lengths.length > 0) {
-                    chapterCount = this.bookData.lengths[0];
-                    this.log(`📚 משתמש ב-book.lengths: ${chapterCount} פרקים`);
-                } else if (this.bookData.schema && this.bookData.schema.depth === 1) {
-                    // ספר עם עומק 1 - כנראה פיסקאות ישירות
-                    this.log('📄 ספר עם פיסקאות ישירות');
-                    const option = document.createElement('option');
-                    option.value = 1;
-                    option.textContent = 'פיסקאות';
-                    chapterSelect.appendChild(option);
+                if (chapterData.he && Array.isArray(chapterData.he)) {
+                    this.chapterData = chapterData;
+                    this.log(`✅ Successfully loaded ${chapterData.he.length} paragraphs at once`);
                     return;
                 } else {
-                    // ברירת מחדל מותאמת לפי סוג הספר
-                    chapterCount = this.estimateChapterCount();
-                    this.log(`📚 משתמש בהערכה: ${chapterCount} פרקים`);
+                    this.log(`⚠️ Unexpected format for chapter data`);
                 }
-                
-                for (let i = 1; i <= chapterCount; i++) {
-                    const option = document.createElement('option');
-                    option.value = i;
-                    option.textContent = `פרק ${i}`;
-                    chapterSelect.appendChild(option);
+            } else {
+                this.log(`❌ Failed to load chapter: ${response.status}`);
+            }
+        } catch (error) {
+            this.log(`❌ Error loading full chapter: ${error.message}`);
+        }
+    }
+    const chapterNum = parseInt(this.currentChapter);
+    let expectedParagraphs = this.getExpectedParagraphCount(chapterNum);
+    
+    if (expectedParagraphs) {
+        this.log(`📊 Expected ${expectedParagraphs} paragraphs for chapter ${chapterNum}`);
+        await this.loadExactParagraphCount(chapterRef, expectedParagraphs);
+    } else {
+        this.log('📊 No expected count, using discovery method');
+        await this.loadParagraphsDiscovery(chapterRef);
+    }
+}
+            getExpectedParagraphCount(chapterNum) {
+                // נסה למצוא את מספר הפיסקאות הצפוי מהמידע שיש לנו
+                let counts = null;
+
+                if (this.currentSection && this.currentSection.data.content_counts) {
+                    counts = this.currentSection.data.content_counts;
+                } else if (this.bookData.schema && this.bookData.schema.content_counts) {
+                    counts = this.bookData.schema.content_counts;
+                } else if (this.bookData.schema && this.bookData.schema.lengths) {
+                    counts = this.bookData.schema.lengths;
+                } else if (this.bookData.lengths && this.bookData.lengths.length > 1) {
+                    counts = this.bookData.lengths[1]; // עבור ספרים פשוטים
                 }
-                
-                this.log(`📚 הוסף ${chapterCount} פרקים למנו`);
+
+                if (counts && Array.isArray(counts) && counts[chapterNum - 1]) {
+                    return counts[chapterNum - 1];
+                }
+
+                return null;
             }
 
-            isSingleChapterBook() {
-                // בדוק אם זהו ספר חד-פרקי
-                if (this.bookData.schema && this.bookData.schema.depth === 1) {
-                    return true;
-                }
-                
-                // בדוק אם יש רק פרק אחד
-                if (this.bookData.schema && this.bookData.schema.lengths && this.bookData.schema.lengths[0] === 1) {
-                    return true;
-                }
-                
-                // בדוק לפי קטגוריות
-                if (this.bookData.categories) {
-                    const singleChapterCategories = ['Modern Works', 'Essays', 'Articles'];
-                    if (this.bookData.categories.some(cat => singleChapterCategories.includes(cat))) {
-                        return true;
-                    }
-                }
-                
-                return false;
-            }
+            async loadExactParagraphCount(chapterRef, expectedCount) {
+                this.log(`📚 Loading ${expectedCount} paragraphs exactly`);
 
-            estimateChapterCount() {
-                // הערכת מספר פרקים לפי סוג הספר
-                
-                if (this.bookData.categories) {
-                    // לפי קטגוריות
-                    if (this.bookData.categories.includes('Tanakh')) {
-                        return 150; // תהילים הוא הארוך ביותר
-                    }
-                    if (this.bookData.categories.includes('Talmud')) {
-                        return 100; // מסכתות גדולות
-                    }
-                    if (this.bookData.categories.includes('Midrash')) {
-                        return 50;
-                    }
-                    if (this.bookData.categories.includes('Halakha')) {
-                        return 30;
-                    }
-                    if (this.bookData.categories.includes('Kabbalah')) {
-                        return 20;
-                    }
-                    if (this.bookData.categories.includes('Philosophy')) {
-                        return 15;
-                    }
-                }
-                
-                // ברירת מחדל כללית
-                return 50;
-            }
-
-            async onChapterSelect() {
-                const chapterSelect = document.getElementById('chapterSelect');
-                const selectedOption = chapterSelect.options[chapterSelect.selectedIndex];
-                const chapterNum = selectedOption.value;
-                
-                if (!chapterNum) return;
-
-                try {
-                    this.showLoading(`בודק מבנה...`, 40);
-                    this.log(`📄 בחירת פרק/תת-חלק: ${chapterNum}`);
-                    
-                    // בדוק אם זהו תת-חלק (כמו בסידור) או פרק רגיל
-                    const isSubSection = selectedOption.dataset.isSubSection === 'true';
-                    
-                    if (isSubSection) {
-                        // זהו תת-חלק מקונן - בדוק אם יש עוד רמות
-                        const sectionIndex = parseInt(selectedOption.dataset.index);
-                        const subSectionData = this.currentSection.data.nodes[sectionIndex];
-                        
-                        this.log('📊 נתוני תת-חלק:', subSectionData);
-                        
-                        if (subSectionData.nodes && Array.isArray(subSectionData.nodes)) {
-                            // יש עוד רמה - צריך לעבור לרמה הבאה
-                            this.log(`📚 נמצאו ${subSectionData.nodes.length} תתי-חלקים נוספים`);
-                            this.currentSubSection = {
-                                key: chapterNum,
-                                data: subSectionData,
-                                index: sectionIndex
-                            };
-                            this.showSubSectionStep(subSectionData);
-                            this.hideLoading();
-                            return;
-                        } else {
-                            // זוהי הרמה הסופית
-                            this.currentChapter = chapterNum;
-                            let chapterRef = `${this.currentBook.title}, ${this.currentSection.key}, ${chapterNum}`;
-                            this.log(`🔗 הפניית תת-חלק סופי: ${chapterRef}`);
-                            await this.loadChapterDataOptimized(chapterRef);
-                        }
-                    } else {
-                        // פרק רגיל
-                        this.currentChapter = chapterNum;
-                        let chapterRef;
-                        if (this.currentSection) {
-                            chapterRef = `${this.currentBook.title}, ${this.currentSection.key} ${chapterNum}`;
-                        } else {
-                            chapterRef = `${this.currentBook.title} ${chapterNum}`;
-                        }
-                        this.log(`🔗 הפניית פרק רגיל: ${chapterRef}`);
-                        await this.loadChapterDataOptimized(chapterRef);
-                    }
-
-                    this.showParagraphStep();
-                    this.populateParagraphs();
-                    this.updateStats();
-                    
-                    this.hideLoading();
-                } catch (error) {
-                    this.hideLoading();
-                    this.log(`❌ שגיאה בטעינת הפרק: ${error.message}`, null, 'error');
-                    this.showError('שגיאה בטעינת הפרק');
-                }
-            }
-
-            showSubSectionStep(subSectionData) {
-                // בדוק אם יש עוד רמה מקוננת
-                this.log('🔄 בודק אם יש רמות נוספות במבנה');
-                this.log('📊 נתוני תת-חלק:', subSectionData);
-                
-                // עדכן את הכותרת
-                const chapterStepTitle = document.querySelector('#chapterStep h3:nth-of-type(3)');
-                
-                // מלא את הסלקט
-                const chapterSelect = document.getElementById('chapterSelect');
-                chapterSelect.innerHTML = '<option value="">בחר...</option>';
-                
-                subSectionData.nodes.forEach((item, index) => {
-                    const option = document.createElement('option');
-                    option.value = item.key || item.title || (index + 1);
-                    
-                    // חפש כותרת עברית
-                    let displayName = item.key || item.title || `פריט ${index + 1}`;
-                    if (item.titles && item.titles.length > 1) {
-                        displayName = item.titles[1].text || displayName;
-                    } else if (item.titles && item.titles.length > 0) {
-                        const title = item.titles[0];
-                        if (title.lang === 'he') {
-                            displayName = title.text;
-                        }
-                    }
-                    
-                    option.textContent = displayName;
-                    option.dataset.index = index;
-                    
-                    // בדוק אם יש עוד nodes (רמה נוספת) או שזהו הסוף
-                    if (item.nodes && Array.isArray(item.nodes)) {
-                        // יש עוד רמה - זהו תת-קטגוריה
-                        option.dataset.hasSubNodes = 'true';
-                        this.log(`📁 ${displayName} מכיל ${item.nodes.length} תתי-פריטים`);
-                        
-                        if (chapterStepTitle) {
-                            chapterStepTitle.textContent = '🔢 בחר קטגוריה:';
-                        }
-                    } else {
-                        // זוהי התפילה הסופית
-                        option.dataset.isFinalPrayer = 'true';
-                        this.log(`🙏 ${displayName} הוא תפילה סופית`);
-                        
-                        if (chapterStepTitle) {
-                            chapterStepTitle.textContent = '🔢 בחר תפילה:';
-                        }
-                    }
-                    
-                    chapterSelect.appendChild(option);
-                });
-                
-                this.log(`📝 הוסף ${subSectionData.nodes.length} פריטים`);
-            }
-
-            async handleSubCategorySelection() {
-                const chapterSelect = document.getElementById('chapterSelect');
-                const selectedOption = chapterSelect.options[chapterSelect.selectedIndex];
-                const categoryKey = selectedOption.value;
-                
-                if (!categoryKey) return;
-                
-                try {
-                    this.log(`📂 נבחרה קטגוריה: ${categoryKey}`);
-                    
-                    // קבל את נתוני הקטגוריה
-                    const categoryIndex = parseInt(selectedOption.dataset.index);
-                    const categoryData = this.currentSubSection.data.nodes[categoryIndex];
-                    
-                    this.log('📊 נתוני קטגוריה:', categoryData);
-                    
-                    // עדכן את currentSubSection עם הקטגוריה החדשה
-                    this.currentSubSection = {
-                        ...this.currentSubSection,
-                        categoryKey: categoryKey,
-                        categoryData: categoryData,
-                        categoryIndex: categoryIndex
-                    };
-                    
-                    // הצג את התפילות בקטגוריה זו
-                    this.showFinalPrayersStep(categoryData);
-                    
-                } catch (error) {
-                    this.log(`❌ שגיאה בטיפול בקטגוריה: ${error.message}`, null, 'error');
-                    this.showError('שגיאה בטעינת הקטגוריה');
-                }
-            }
-
-            showFinalPrayersStep(categoryData) {
-                this.log('🙏 מציג תפילות סופיות');
-                
-                // עדכן את הכותרת
-                const chapterStepTitle = document.querySelector('#chapterStep h3:nth-of-type(3)');
-                if (chapterStepTitle) {
-                    chapterStepTitle.textContent = '🔢 בחר תפילה:';
-                }
-                
-                // מלא את הסלקט עם התפילות הספציפיות
-                const chapterSelect = document.getElementById('chapterSelect');
-                chapterSelect.innerHTML = '<option value="">בחר תפילה...</option>';
-                
-                categoryData.nodes.forEach((prayer, index) => {
-                    const option = document.createElement('option');
-                    option.value = prayer.key || prayer.title || (index + 1);
-                    
-                    // חפש כותרת עברית
-                    let displayName = prayer.key || prayer.title || `תפילה ${index + 1}`;
-                    if (prayer.titles && prayer.titles.length > 1) {
-                        displayName = prayer.titles[1].text || displayName;
-                    } else if (prayer.titles && prayer.titles.length > 0) {
-                        const title = prayer.titles[0];
-                        if (title.lang === 'he') {
-                            displayName = title.text;
-                        }
-                    }
-                    
-                    option.textContent = displayName;
-                    option.dataset.index = index;
-                    option.dataset.isFinalPrayer = 'true';
-                    chapterSelect.appendChild(option);
-                });
-                
-                this.log(`🙏 הוסף ${categoryData.nodes.length} תפילות סופיות`);
-            }
-
-            async handleFinalPrayerSelection() {
-                const chapterSelect = document.getElementById('chapterSelect');
-                const selectedOption = chapterSelect.options[chapterSelect.selectedIndex];
-                const prayerKey = selectedOption.value;
-                
-                if (!prayerKey) return;
-                
-                try {
-                    this.showLoading(`טוען תפילה...`, 60);
-                    this.currentChapter = prayerKey;
-                    
-                    // בנה הפניה לתפילה ספציפית - 5 רמות!
-                    let chapterRef;
-                    if (this.currentSubSection && this.currentSubSection.categoryKey) {
-                        // 5 רמות: ספר, חלק, תת-חלק, קטגוריה, תפילה
-                        chapterRef = `${this.currentBook.title}, ${this.currentSection.key}, ${this.currentSubSection.key}, ${this.currentSubSection.categoryKey}, ${prayerKey}`;
-                    } else if (this.currentSubSection) {
-                        // 4 רמות: ספר, חלק, תת-חלק, תפילה
-                        chapterRef = `${this.currentBook.title}, ${this.currentSection.key}, ${this.currentSubSection.key}, ${prayerKey}`;
-                    } else if (this.currentSection) {
-                        // 3 רמות: ספר, חלק, תפילה
-                        chapterRef = `${this.currentBook.title}, ${this.currentSection.key}, ${prayerKey}`;
-                    } else {
-                        // 2 רמות: ספר, תפילה
-                        chapterRef = `${this.currentBook.title}, ${prayerKey}`;
-                    }
-                    
-                    this.log(`🔗 הפניית תפילה (5 רמות): ${chapterRef}`);
-                    await this.loadChapterDataOptimized(chapterRef);
-                    
-                    this.showParagraphStep();
-                    this.populateParagraphs();
-                    this.updateStats();
-                    
-                    this.hideLoading();
-                } catch (error) {
-                    this.hideLoading();
-                    this.log(`❌ שגיאה בטעינת התפילה: ${error.message}`, null, 'error');
-                    this.showError('שגיאה בטעינת התפילה');
-                }
-            }
-
-            async loadChapterDataOptimized(chapterRef) {
-                const cacheKey = this.getCacheKey('chapter', chapterRef);
-                
-                if (this.versionCache.has(cacheKey)) {
-                    this.apiStats.cacheHits++;
-                    this.chapterData = this.versionCache.get(cacheKey);
-                    this.log('📋 משתמש בנתוני פרק מהזיכרון');
-                    return;
-                }
-
-                try {
-                    this.log(`🌐 שולף נתוני פרק: ${chapterRef}`);
-                    this.chapterData = await this.makeApiCall(
-                        `${this.baseUrl}/texts/${encodeURIComponent(chapterRef)}`,
-                        `טעינת פרק ${chapterRef}`
-                    );
-
-                    this.log('📊 מבנה נתוני הפרק:', this.chapterData);
-
-                    // בדוק פורמטים שונים של תגובת API
-                    if (this.chapterData.he && Array.isArray(this.chapterData.he)) {
-                        // פורמט רגיל - מערך של פסוקים/פיסקאות
-                        this.versionCache.set(cacheKey, this.chapterData);
-                        this.log(`✅ טען ${this.chapterData.he.length} פסוקים בפורמט רגיל`);
-                        
-                    } else if (this.chapterData.he && typeof this.chapterData.he === 'string') {
-                        // פורמט של טקסט יחיד - נכניס אותו למערך
-                        this.chapterData.he = [this.chapterData.he];
-                        this.versionCache.set(cacheKey, this.chapterData);
-                        this.log(`✅ טען טקסט יחיד, הומר למערך`);
-                        
-                    } else if (this.chapterData.text && Array.isArray(this.chapterData.text)) {
-                        // לפעמים הטקסט מגיע בשדה 'text' במקום 'he'
-                        this.chapterData.he = this.chapterData.text;
-                        this.versionCache.set(cacheKey, this.chapterData);
-                        this.log(`✅ טען ${this.chapterData.he.length} פסוקים מהשדה text`);
-                        
-                    } else if (this.chapterData.text && typeof this.chapterData.text === 'string') {
-                        // טקסט יחיד בשדה text
-                        this.chapterData.he = [this.chapterData.text];
-                        this.versionCache.set(cacheKey, this.chapterData);
-                        this.log(`✅ טען טקסט יחיד מהשדה text`);
-                        
-                    } else {
-                        // נסה לטעון פיסקא אחר פיסקא
-                        this.log('⚠️ פורמט לא צפוי, מנסה טעינה פיסקא אחר פיסקא');
-                        await this.loadParagraphByParagraphFallback(chapterRef);
-                    }
-                    
-                } catch (error) {
-                    this.log(`❌ שגיאה בטעינת פרק: ${error.message}`, null, 'error');
-                    
-                    // נסה fallback
-                    this.log('🔄 מנסה טעינה חלופית...');
-                    await this.loadParagraphByParagraphFallback(chapterRef);
-                }
-            }
-
-            async loadParagraphByParagraphFallback(chapterRef) {
-                this.log(`🔍 טעינה חלופית פיסקא אחר פיסקא: ${chapterRef}`);
-                
                 this.chapterData = { he: [] };
-                const maxAttempts = 50;
-                const maxFailures = 5;
+
+                for (let paragraphNum = 1; paragraphNum <= expectedCount; paragraphNum++) {
+                    const paragraphRef = `${chapterRef}:${paragraphNum}`;
+
+                    try {
+                        this.log(`📄 Loading paragraph ${paragraphNum}/${expectedCount}: ${paragraphRef}`);
+
+                        const response = await fetch(`${this.baseUrl}/texts/${encodeURIComponent(paragraphRef)}`);
+
+                        if (response.ok) {
+                            const paragraphData = await response.json();
+
+                            if (paragraphData.he) {
+                                const paragraphText = Array.isArray(paragraphData.he) ?
+                                    paragraphData.he[0] || paragraphData.he.join(' ') : paragraphData.he;
+
+                                if (paragraphText && paragraphText.trim()) {
+                                    this.chapterData.he.push(paragraphText);
+                                    this.log(`✅ Loaded paragraph ${paragraphNum}: ${paragraphText.substring(0, 50)}...`);
+                                } else {
+                                    this.chapterData.he.push(''); // שמור מקום ריק
+                                    this.log(`⚠️ Empty paragraph ${paragraphNum}`);
+                                }
+                            } else {
+                                this.chapterData.he.push(''); // שמור מקום ריק
+                                this.log(`⚠️ No Hebrew text for paragraph ${paragraphNum}`);
+                            }
+                        } else {
+                            this.chapterData.he.push(''); // שמור מקום ריק
+                            this.log(`❌ Failed to load paragraph ${paragraphNum}: ${response.status}`);
+                        }
+
+                        // השהיה קצרה בין בקשות
+                        await new Promise(resolve => setTimeout(resolve, 100));
+
+                    } catch (error) {
+                        this.log(`❌ Error loading paragraph ${paragraphNum}: ${error.message}`);
+                        this.chapterData.he.push(''); // שמור מקום ריק
+                    }
+                }
+
+                // הסר פיסקאות ריקות מהסוף
+                while (this.chapterData.he.length > 0 && !this.chapterData.he[this.chapterData.he.length - 1].trim()) {
+                    this.chapterData.he.pop();
+                }
+
+                this.log(`📊 Loaded ${this.chapterData.he.length} paragraphs out of ${expectedCount} expected`);
+            }
+
+            async loadParagraphsDiscovery(chapterRef) {
+                this.log(`🔍 Discovering paragraphs for: ${chapterRef}`);
+
+                // נסה לטעון את כל הפרק קודם
+                try {
+                    const fullChapterResponse = await fetch(`${this.baseUrl}/texts/${encodeURIComponent(chapterRef)}`);
+
+                    if (fullChapterResponse.ok) {
+                        const fullChapterData = await fullChapterResponse.json();
+
+                        if (fullChapterData.he && Array.isArray(fullChapterData.he)) {
+                            this.chapterData = fullChapterData;
+                            this.log(`✅ Loaded ${fullChapterData.he.length} paragraphs from full chapter`);
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    this.log(`❌ Error loading full chapter: ${error.message}`);
+                }
+
+                // אם זה לא עבד, נשתמש בשיטת הגילוי המקורית
+                await this.discoverExistingParagraphs(chapterRef);
+            }
+
+
+            async discoverExistingParagraphs(chapterRef) {
+                this.log(`🔍 Discovering existing paragraphs for: ${chapterRef}`);
+
+                this.chapterData = { he: [] };
+                const maxAttempts = 200;
+                const maxFailures = 10; // עצור אחרי 10 כישלונות רצופים
                 let consecutiveFailures = 0;
 
                 for (let paragraphNum = 1; paragraphNum <= maxAttempts; paragraphNum++) {
                     const paragraphRef = `${chapterRef}:${paragraphNum}`;
 
                     try {
+                        this.log(`🔍 Trying paragraph ${paragraphNum}`);
+
                         const response = await fetch(`${this.baseUrl}/texts/${encodeURIComponent(paragraphRef)}`);
 
                         if (response.ok) {
                             const paragraphData = await response.json();
 
-                            if (paragraphData.he || paragraphData.text) {
-                                const paragraphText = paragraphData.he || paragraphData.text;
-                                const cleanText = Array.isArray(paragraphText) ? 
-                                    paragraphText[0] || paragraphText.join(' ') : paragraphText;
+                            if (paragraphData.he && paragraphData.he.length > 0) {
+                                const paragraphText = Array.isArray(paragraphData.he) ?
+                                    paragraphData.he[0] : paragraphData.he;
 
-                                if (cleanText && cleanText.trim()) {
-                                    this.chapterData.he.push(cleanText);
-                                    this.log(`✅ נמצא פסוק ${paragraphNum}`);
+                                if (paragraphText && paragraphText.trim()) {
+                                    this.chapterData.he.push(paragraphText);
+                                    this.log(`✅ Found paragraph ${paragraphNum}`);
                                     consecutiveFailures = 0;
                                 } else {
                                     consecutiveFailures++;
@@ -1545,22 +768,23 @@
                             }
                         } else if (response.status === 404) {
                             consecutiveFailures++;
-                            this.log(`⏭️ פסוק ${paragraphNum} לא נמצא (404)`);
+                            this.log(`⏭️ Paragraph ${paragraphNum} not found (404)`);
                         } else {
                             consecutiveFailures++;
+                            this.log(`❌ Error ${response.status} for paragraph ${paragraphNum}`);
                         }
 
                         // עצור אם יש יותר מדי כישלונות רצופים
                         if (consecutiveFailures >= maxFailures) {
-                            this.log(`🛑 עוצר אחרי ${maxFailures} כישלונות רצופים`);
+                            this.log(`🛑 Stopping after ${maxFailures} consecutive failures`);
                             break;
                         }
 
                         // השהיה קצרה בין בקשות
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                        await new Promise(resolve => setTimeout(resolve, 50));
 
                     } catch (error) {
-                        this.log(`❌ שגיאה בשליפת פסוק ${paragraphNum}: ${error.message}`);
+                        this.log(`❌ Error fetching paragraph ${paragraphNum}: ${error.message}`);
                         consecutiveFailures++;
 
                         if (consecutiveFailures >= maxFailures) {
@@ -1569,10 +793,30 @@
                     }
                 }
 
-                this.log(`📊 טעינה חלופית הושלמה: ${this.chapterData.he.length} פסוקים נמצאו`);
+                this.log(`📊 Discovery complete: ${this.chapterData.he.length} paragraphs found`);
 
                 if (this.chapterData.he.length === 0) {
-                    throw new Error('לא נמצאו פסוקים לפרק זה');
+                    this.log('⚠️ No paragraphs found, trying final fallback');
+                    await this.loadChapterFallback(chapterRef);
+                }
+            }
+
+            async loadChapterFallback(chapterRef) {
+                // שלוף את כל הפרק
+                try {
+                    const response = await fetch(`${this.baseUrl}/texts/${encodeURIComponent(chapterRef)}`);
+                    const data = await response.json();
+
+
+                    if (data.he && Array.isArray(data.he)) {
+                        this.chapterData = data;
+                        this.log(`📚 Fallback: loaded ${data.he.length} paragraphs from full chapter`);
+                    } else if (data.he) {
+                        this.chapterData = { he: [data.he] };
+                        this.log('📚 Fallback: loaded single paragraph');
+                    }
+                } catch (error) {
+                    this.log(`❌ Fallback also failed: ${error.message}`, 'error');
                 }
             }
 
@@ -1589,104 +833,33 @@
                 document.getElementById('selectedChapterTitle').textContent = title;
             }
 
-            populateParagraphs() {
-                const startSelect = document.getElementById('startParagraph');
-                const endSelect = document.getElementById('endParagraph');
-                
-                startSelect.innerHTML = '<option value="">בחר התחלה...</option>';
-                endSelect.innerHTML = '<option value="">בחר סוף...</option>';
-
-                if (this.chapterData.he && Array.isArray(this.chapterData.he)) {
-                    const numParagraphs = this.chapterData.he.length;
-                    this.log(`📝 פרק כולל ${numParagraphs} פסוקים`);
-
-                    for (let i = 1; i <= numParagraphs; i++) {
-                        const startOption = document.createElement('option');
-                        startOption.value = i;
-                        startOption.textContent = `פסוק ${i}`;
-                        startSelect.appendChild(startOption);
-
-                        const endOption = document.createElement('option');
-                        endOption.value = i;
-                        endOption.textContent = `פסוק ${i}`;
-                        endSelect.appendChild(endOption);
-                    }
-                } else {
-                    this.log('❌ לא נמצאו נתוני פסוקים', 'error');
-                }
-            }
-
-            updateStats() {
-                const totalVerses = this.chapterData.he ? this.chapterData.he.length : 0;
-                document.getElementById('totalVerses').textContent = totalVerses;
-                
-                const selectedRange = this.getSelectedRange();
-                document.getElementById('selectedRange').textContent = selectedRange;
-                
-                // נעדכן את מספר המפרשים כאשר נטען אותם
-                document.getElementById('commentariesCount').textContent = '-';
-            }
-
-            getSelectedRange() {
-                const start = document.getElementById('startParagraph').value;
-                const end = document.getElementById('endParagraph').value;
-                
-                if (start && end) {
-                    return Math.abs(parseInt(end) - parseInt(start)) + 1;
-                }
-                return '-';
-            }
-
             async onParagraphRangeChange() {
                 const start = document.getElementById('startParagraph').value;
                 const end = document.getElementById('endParagraph').value;
 
-                this.updateStats();
-
                 if (start && end) {
-                    this.log(`📝 נבחר טווח: ${start} עד ${end}`);
+                    this.log(`📝 Paragraph range selected: ${start} to ${end}`);
 
-                    try {
-                        this.showLoading('טוען גירסאות ומפרשים...', 60);
-                        
-                        await Promise.all([
-                            this.loadVersionsOptimized(),
-                            this.loadCommentariesOptimized()
-                        ]);
+                    await this.loadVersions();
+                    await this.loadCommentaries();
 
-                        document.getElementById('generateBtn').disabled = false;
-                        this.hideLoading();
-                    } catch (error) {
-                        this.hideLoading();
-                        this.log('❌ שגיאה בטעינת גירסאות או מפרשים', null, 'error');
-                    }
+                    document.getElementById('generateBtn').disabled = false;
                 } else {
                     document.getElementById('generateBtn').disabled = true;
                 }
             }
 
-            async loadVersionsOptimized() {
+            async loadVersions() {
                 try {
-                    const cacheKey = this.getCacheKey('versions', this.currentBook.title);
-                    
-                    let versions;
-                    if (this.versionCache.has(cacheKey)) {
-                        this.apiStats.cacheHits++;
-                        versions = this.versionCache.get(cacheKey);
-                        this.log('📋 משתמש בגירסאות מהזיכרון');
-                    } else {
-                        versions = await this.makeApiCall(
-                            `${this.baseUrl}/texts/versions/${encodeURIComponent(this.currentBook.title)}`,
-                            'טעינת גירסאות'
-                        );
-                        this.versionCache.set(cacheKey, versions);
-                    }
+                    this.log('📚 Loading versions...');
+                    const response = await fetch(`${this.baseUrl}/texts/versions/${encodeURIComponent(this.currentBook.title)}`);
+                    const versions = await response.json();
+
 
                     const container = document.getElementById('versionsContainer');
                     container.innerHTML = '';
 
                     if (Array.isArray(versions)) {
-                        let addedVersions = 0;
                         versions.forEach(version => {
                             if (version.languageFamilyName !== 'hebrew' || !version.isPrimary) {
                                 const label = document.createElement('label');
@@ -1699,226 +872,296 @@
                                 label.appendChild(checkbox);
                                 label.appendChild(document.createTextNode(`${version.versionTitle} (${version.languageFamilyName})`));
                                 container.appendChild(label);
-                                addedVersions++;
-                            }
-                        });
-                        this.log(`📚 הוסף ${addedVersions} גירסאות`);
-                    }
-                } catch (error) {
-                    this.log(`❌ שגיאה בטעינת גירסאות: ${error.message}`, null, 'error');
-                    document.getElementById('versionsContainer').innerHTML = '<div>שגיאה בטעינת גירסאות</div>';
-                }
-            }
-
-            async loadCommentariesOptimized() {
-                try {
-                    const start = document.getElementById('startParagraph').value;
-                    if (!start) return;
-
-                    let sampleRef;
-                    if (this.currentSubSection && this.currentSubSection.categoryKey) {
-                        sampleRef = `${this.currentBook.title}, ${this.currentSection.key}, ${this.currentSubSection.key}, ${this.currentSubSection.categoryKey}, ${this.currentChapter}:${start}`;
-                    } else if (this.currentSubSection) {
-                        sampleRef = `${this.currentBook.title}, ${this.currentSection.key}, ${this.currentSubSection.key}, ${this.currentChapter}:${start}`;
-                    } else if (this.currentSection) {
-                        sampleRef = `${this.currentBook.title}, ${this.currentSection.key} ${this.currentChapter}:${start}`;
-                    } else {
-                        sampleRef = `${this.currentBook.title} ${this.currentChapter}:${start}`;
-                    }
-
-                    const cacheKey = this.getCacheKey('commentaries', sampleRef);
-                    
-                    let commentaries;
-                    if (this.commentaryCache.has(cacheKey)) {
-                        this.apiStats.cacheHits++;
-                        commentaries = this.commentaryCache.get(cacheKey);
-                        this.log('📋 משתמש במפרשים מהזיכרון');
-                    } else {
-                        commentaries = await this.discoverCommentariesOptimized(sampleRef);
-                        this.commentaryCache.set(cacheKey, commentaries);
-                    }
-
-                    const container = document.getElementById('commentariesContainer');
-                    container.innerHTML = '';
-
-                    if (commentaries.size > 0) {
-                        commentaries.forEach(title => {
-                            const label = document.createElement('label');
-                            const checkbox = document.createElement('input');
-                            checkbox.type = 'checkbox';
-                            checkbox.value = title;
-
-                            label.appendChild(checkbox);
-                            label.appendChild(document.createTextNode(title));
-                            container.appendChild(label);
-                        });
-
-                        document.getElementById('commentariesCount').textContent = commentaries.size;
-                        this.log(`✅ נמצאו ${commentaries.size} מפרשים`);
-                    } else {
-                        container.innerHTML = '<div>לא נמצאו מפרשים זמינים</div>';
-                        document.getElementById('commentariesCount').textContent = '0';
-                    }
-                } catch (error) {
-                    this.log(`❌ שגיאה בטעינת מפרשים: ${error.message}`, null, 'error');
-                    document.getElementById('commentariesContainer').innerHTML = '<div>שגיאה בטעינת מפרשים</div>';
-                }
-            }
-
-            async discoverCommentariesOptimized(ref) {
-                const commentaries = new Set();
-
-                try {
-                    const links = await this.makeApiCall(
-                        `${this.baseUrl}/links/${encodeURIComponent(ref)}`,
-                        'טעינת קישורים למפרשים'
-                    );
-
-                    if (Array.isArray(links)) {
-                        links.forEach(link => {
-                            if (link.category === 'Commentary' && link.collectiveTitle) {
-                                const title = link.collectiveTitle.he || link.collectiveTitle.en;
-                                if (title) {
-                                    commentaries.add(title);
-                                    this.log(`📝 נמצא מפרש: ${title}`);
-                                }
                             }
                         });
                     }
                 } catch (error) {
-                    this.log(`❌ שגיאה בחיפוש מפרשים: ${error.message}`);
+                    this.log(`❌ Error loading versions: ${error.message}`, 'error');
                 }
-
-                return commentaries;
             }
 
+     populateParagraphs() {
+    const startSelect = document.getElementById('startParagraph');
+    const endSelect = document.getElementById('endParagraph');
+    
+    startSelect.innerHTML = '<option value="">בחר התחלה...</option>';
+    endSelect.innerHTML = '<option value="">בחר סוף...</option>';
+
+    if (this.chapterData.he && Array.isArray(this.chapterData.he)) {
+        const numParagraphs = this.chapterData.he.length;
+        this.log(`📝 Chapter has ${numParagraphs} paragraphs`);
+
+        // קבע את התווית המתאימה בהתבסס על סוג הספר
+        const paraLabel = this.currentSection ? 'פיסקא' : 'פסוק';
+        
+        // קבע את ההיסט לפסוקים
+        let offset = 0;
+        
+        // אם יש לנו offset מה-API, נשתמש בו
+        if (this.chapterInfo && this.chapterInfo.offset !== undefined) {
+            offset = this.chapterInfo.offset;
+            this.log(`📊 Using API offset: ${offset}`);
+        } else {
+            this.log(`📊 No offset available, using 0`);
+        }
+
+        for (let i = 1; i <= numParagraphs; i++) {
+            const displayNumber = i + offset;
+            
+            const startOption = document.createElement('option');
+            startOption.value = displayNumber;
+            startOption.textContent = `${paraLabel} ${displayNumber}`;
+            startSelect.appendChild(startOption);
+
+            const endOption = document.createElement('option');
+            endOption.value = displayNumber;
+            endOption.textContent = `${paraLabel} ${displayNumber}`;
+            endSelect.appendChild(endOption);
+        }
+        
+        // ודא שה-event listeners עובדים
+        this.log('🔧 Re-ensuring event listeners for paragraph selects');
+        startSelect.removeEventListener('change', this.onParagraphRangeChange.bind(this));
+        endSelect.removeEventListener('change', this.onParagraphRangeChange.bind(this));
+        startSelect.addEventListener('change', this.onParagraphRangeChange.bind(this));
+        endSelect.addEventListener('change', this.onParagraphRangeChange.bind(this));
+        
+    } else {
+        this.log('❌ No paragraph data found in chapter', 'error');
+        
+        // fallback - צור כמה פיסקאות כברירת מחדל
+        for (let i = 1; i <= 10; i++) {
+            const startOption = document.createElement('option');
+            startOption.value = i;
+            startOption.textContent = `פסוק ${i}`;
+            startSelect.appendChild(startOption);
+
+            const endOption = document.createElement('option');
+            endOption.value = i;
+            endOption.textContent = `פסוק ${i}`;
+            endSelect.appendChild(endOption);
+        }
+    }
+}
             async generateDocument() {
                 try {
-                    this.log('📄 מתחיל יצירת מסמך...');
-                    this.showLoading('מכין מסמך מקצועי...', 70);
-                    
+                    this.log('📄 Generating document...');
                     document.getElementById('generateBtn').disabled = true;
+                    document.getElementById('generateLoading').classList.remove('hidden');
 
                     const start = parseInt(document.getElementById('startParagraph').value);
                     const end = parseInt(document.getElementById('endParagraph').value);
 
+                    // איסוף הגירסאות הנבחרות
                     const selectedVersions = Array.from(document.querySelectorAll('#versionsContainer input[type="checkbox"]:checked'))
-                        .map(cb => ({
-                            title: cb.dataset.title,
-                            language: cb.dataset.language
-                        }))
-                        .filter(v => v.title && v.language);
+                        .map(cb => {
+                            const title = cb.dataset.title;
+                            const language = cb.dataset.language;
 
+                            this.log(`📝 Selected version: ${title} (${language})`);
+
+                            return {
+                                title: title,
+                                language: language
+                            };
+                        })
+                        .filter(v => v.title && v.language); // סנן גירסאות לא תקינות
+
+                    // איסוף המפרשים הנבחרים
                     const selectedCommentaries = Array.from(document.querySelectorAll('#commentariesContainer input:checked'))
                         .map(cb => cb.value);
 
-                    this.log(`📊 טווח נבחר: ${start} עד ${end}`);
-                    this.log(`📚 גירסאות נבחרות:`, selectedVersions);
-                    this.log(`📝 מפרשים נבחרים: ${selectedCommentaries.join(', ') || 'ללא'}`);
+                    this.log(`📊 Selected range: ${start} to ${end}`);
+                    this.log(`📚 Selected versions:`, selectedVersions);
+                    this.log(`📝 Selected commentaries: ${selectedCommentaries.join(', ') || 'none'}`);
 
-                    this.showLoading('אוסף תוכן...', 80);
-                    const documentData = await this.fetchDocumentDataOptimized(start, end, selectedVersions, selectedCommentaries);
 
-                    this.showLoading('מייצר מסמך Word...', 95);
-                    this.createProfessionalWordDocument(documentData);
 
-                    this.log('✅ מסמך נוצר בהצלחה!', null, 'success');
+                    // שלוף את כל הפיסקאות בטווח
+                    const documentData = await this.fetchDocumentData(start, end, selectedVersions, selectedCommentaries);
+
+                    // יצור קובץ Word
+                    this.createWordDocument(documentData);
+
+                    this.log('✅ Document generated successfully!', 'success');
                     this.showSuccess('המסמך נוצר בהצלחה!');
-                    this.hideLoading();
 
                 } catch (error) {
-                    this.log(`❌ שגיאה ביצירת מסמך: ${error.message}`, null, 'error');
+                    this.log(`❌ Error generating document: ${error.message}`, 'error');
                     this.showError('שגיאה ביצירת המסמך');
-                    this.hideLoading();
                 } finally {
                     document.getElementById('generateBtn').disabled = false;
+                    document.getElementById('generateLoading').classList.add('hidden');
                 }
             }
 
-            async fetchDocumentDataOptimized(startParagraph, endParagraph, selectedVersions, selectedCommentaries) {
-                const documentData = [];
-                const totalParagraphs = endParagraph - startParagraph + 1;
-                let processedParagraphs = 0;
+      async fetchDocumentData(startParagraph, endParagraph, selectedVersions, selectedCommentaries) {
+    const documentData = [];
 
-                this.log(`📚 מעבד פסוקים ${startParagraph} עד ${endParagraph}`);
+    this.log(`📚 Processing paragraphs ${startParagraph} to ${endParagraph}`);
 
-                for (let verseNum = startParagraph; verseNum <= endParagraph; verseNum++) {
-                    this.log(`📄 מעבד פסוק ${verseNum}`);
+    for (let index = startParagraph; index <= endParagraph; index++) {
+        this.log(`📄 Processing paragraph ${index}`);
 
-                    const arrayIndex = verseNum - 1;
-                    
-                    if (arrayIndex < 0 || arrayIndex >= this.chapterData.he.length) {
-                        this.log(`⚠️ אינדקס לא תקין ${arrayIndex} לפסוק ${verseNum}`);
-                        continue;
-                    }
+        // חישוב אינדקס המערך בהתחשב בהיסט
+        const offset = this.chapterInfo.offset || 0;
+        const arrayIndex = index - offset - 1;
+        
+        this.log(`📊 Array index for paragraph ${index}: ${arrayIndex} (offset: ${offset})`);
+        
+        // בדוק שהאינדקס תקין
+        if (arrayIndex < 0 || arrayIndex >= this.chapterData.he.length) {
+            this.log(`⚠️ Invalid array index ${arrayIndex} for paragraph ${index}`);
+            continue;
+        }
 
-                    const hebrewText = this.chapterData.he[arrayIndex];
-                    
-                    let paragraphRef;
-                    if (this.currentSubSection && this.currentSubSection.categoryKey) {
-                        // 5 רמות: ספר, חלק, תת-חלק, קטגוריה, תפילה:פסוק
-                        paragraphRef = `${this.currentBook.title}, ${this.currentSection.key}, ${this.currentSubSection.key}, ${this.currentSubSection.categoryKey}, ${this.currentChapter}:${verseNum}`;
-                    } else if (this.currentSubSection) {
-                        // 4 רמות: ספר, חלק, תת-חלק, תפילה:פסוק
-                        paragraphRef = `${this.currentBook.title}, ${this.currentSection.key}, ${this.currentSubSection.key}, ${this.currentChapter}:${verseNum}`;
-                    } else if (this.currentSection) {
-                        // 3 רמות: ספר, חלק, פרק:פסוק
-                        paragraphRef = `${this.currentBook.title}, ${this.currentSection.key} ${this.currentChapter}:${verseNum}`;
-                    } else {
-                        // 2 רמות: ספר פרק:פסוק
-                        paragraphRef = `${this.currentBook.title} ${this.currentChapter}:${verseNum}`;
-                    }
-                    
-                    this.log(`🔗 הפניית פסוק: ${paragraphRef}`);
-                    
-                    try {
-                        const cleanText = hebrewText.replace(/<[^>]*>/g, '').trim();
+        const hebrewText = this.chapterData.he[arrayIndex];
+        
+        // בנה הפניה לפיסקא בפורמט הנכון
+        let paragraphRef;
+        if (this.currentSection) {
+            paragraphRef = `${this.currentBook.title}, ${this.currentSection.key} ${this.currentChapter}:${index}`;
+        } else {
+            paragraphRef = `${this.currentBook.title} ${this.currentChapter}:${index}`;
+        }
+        
+        this.log(`🔗 Paragraph reference: ${paragraphRef}`);
+        
+        try {
+            // נקה את הטקסט מ-HTML tags
+            const cleanText = hebrewText.replace(/<[^>]*>/g, '').trim();
 
-                        if (!cleanText) {
-                            this.log(`⚠️ טקסט ריק לפסוק ${verseNum}`);
-                            continue;
-                        }
-
-                        // עדכון אחוזי התקדמות
-                        processedParagraphs++;
-                        const progress = 80 + (processedParagraphs / totalParagraphs) * 15;
-                        this.showLoading(`מעבד פסוק ${verseNum}/${endParagraph}...`, progress);
-
-                        const [commentaries, additionalVersions] = await Promise.all([
-                            this.fetchCommentariesForParagraphOptimized(paragraphRef, selectedCommentaries),
-                            this.fetchAdditionalVersionsOptimized(paragraphRef, selectedVersions, arrayIndex)
-                        ]);
-
-                        documentData.push({
-                            paragraphNum: verseNum,
-                            ref: paragraphRef,
-                            hebrewText: cleanText,
-                            additionalVersions,
-                            commentaries
-                        });
-
-                        this.log(`✅ הוסף פסוק ${verseNum} עם ${commentaries.length} מפרשים`);
-
-                    } catch (error) {
-                        this.log(`❌ שגיאה בעיבוד פסוק ${verseNum}: ${error.message}`, null, 'error');
-                    }
-
-                    // השהיה קצרה בין בקשות
-                    await new Promise(resolve => setTimeout(resolve, 50));
-                }
-
-                this.log(`🎉 נתוני מסמך מוכנים: ${documentData.length} פסוקים`);
-                return documentData;
+            if (!cleanText) {
+                this.log(`⚠️ Empty text for paragraph ${index}`);
+                continue;
             }
 
-            async fetchCommentariesForParagraphOptimized(ref, selectedCommentaries) {
+            // שלוף מפרשים לפיסקא זו
+            const commentaries = await this.fetchCommentariesForParagraph(paragraphRef, selectedCommentaries);
+
+            // שלוף גירסאות נוספות - באמצעות גישה יעילה יותר
+            const additionalVersions = await this.fetchAdditionalVersionsEfficient(paragraphRef, selectedVersions, arrayIndex);
+
+            documentData.push({
+                paragraphNum: index,
+                ref: paragraphRef,
+                hebrewText: cleanText,
+                additionalVersions,
+                commentaries
+            });
+
+            this.log(`✅ Added paragraph ${index} with ${commentaries.length} commentaries`);
+
+        } catch (error) {
+            this.log(`❌ Error processing paragraph ${index}: ${error.message}`, 'error');
+        }
+
+        // השהיה קצרה בין בקשות
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    this.log(`🎉 Document data ready: ${documentData.length} paragraphs`);
+    return documentData;
+}
+async fetchAdditionalVersionsEfficient(ref, selectedVersions, arrayIndex) {
+    if (!selectedVersions || selectedVersions.length === 0) {
+        return [];
+    }
+
+    this.log(`📚 Fetching additional versions for: ${ref}`);
+    const versions = [];
+
+    for (const version of selectedVersions) {
+        try {
+            // ודא שיש לנו title ו-language תקינים
+            if (!version.title || !version.language) {
+                this.log(`⚠️ Skipping invalid version:`, version);
+                continue;
+            }
+            
+            this.log(`🔍 Fetching version: ${version.title} (${version.language})`);
+            
+            // יצירת מפתח מטמון לגרסה זו
+            const cacheKey = `${this.currentChapter}_${version.title}`;
+            
+            // בדיקה אם יש לנו כבר את כל הפרק במטמון
+            let versionChapterData = this.commentaryCache.get(cacheKey);
+            
+            if (!versionChapterData) {
+                // אם אין במטמון, נטען את כל הפרק
+                const chapterRef = ref.split(':')[0]; // לקבל רק את ההפניה לפרק ללא מספר פסוק
+                const encodedRef = encodeURIComponent(chapterRef);
+                const versionParam = encodeURIComponent(`${version.language}|${version.title}`);
+                const url = `${this.baseUrl}/v3/texts/${encodedRef}?version=${versionParam}`;
+                
+                this.log(`🌐 Version URL for whole chapter: ${url}`);
+                
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    versionChapterData = await response.json();
+                    this.log(`📊 Version chapter data for ${version.title}:`, versionChapterData);
+                    
+                    // שמור במטמון לשימוש עתידי
+                    this.commentaryCache.set(cacheKey, versionChapterData);
+                } else {
+                    this.log(`❌ Failed to fetch version ${version.title}: ${response.status}`);
+                    continue;
+                }
+            } else {
+                this.log(`📋 Using cached chapter data for version: ${version.title}`);
+            }
+            
+            // חלץ את הטקסט הספציפי לפסוק/פיסקא מנתוני הפרק בהתאם לשפה
+            let versionText = '';
+                versionText = versionChapterData.versions[0].text[arrayIndex];
+                        this.log(`📄 Found ${version.text} text for ${version.title} `);
+      
+            if (!versionText) {
+                this.log(`⚠️ No text found for version ${version.title} at index ${arrayIndex}`);
+                continue;
+            }
+            
+            if (versionText && versionText.trim()) {
+                // נקה מ-HTML tags
+                versionText = versionText.replace(/<[^>]*>/g, '').trim();
+                
+                versions.push({
+                    title: version.title,
+                    heTitle: versionChapterData.versions[0].versionTitleInHebrew || '',
+                    heRef: version.heRef || '',
+                    language: version.language,
+                    text: versionText
+                });
+                
+                this.log(`✅ Added version: ${version.title} (${versionText.length} chars)`);
+            } else {
+                this.log(`⚠️ No text found for version ${version.title} at index ${arrayIndex}`);
+                
+                // אם לא הצלחנו למצוא טקסט ספציפי, ננסה את השיטה הישנה
+                await this.fetchVersionFallback(ref, version, versions);
+            }
+            
+        } catch (error) {
+            this.log(`❌ Error fetching version ${version.title}: ${error.message}`, 'error');
+            
+            // נסה fallback במקרה של שגיאה
+            await this.fetchVersionFallback(ref, version, versions);
+        }
+    }
+
+    this.log(`📚 Fetched ${versions.length} additional versions`);
+    return versions;
+}
+            async fetchCommentariesForParagraph(ref, selectedCommentaries) {
                 if (selectedCommentaries.length === 0) return [];
 
                 try {
-                    this.log(`📝 שולף מפרשים עבור: ${ref}`);
+                    this.log(`📝 Fetching commentaries for: ${ref}`);
 
                     const response = await fetch(`${this.baseUrl}/links/${encodeURIComponent(ref)}`);
                     const links = await response.json();
+
 
                     const commentaries = [];
 
@@ -1928,7 +1171,7 @@
                                 const commentaryTitle = link.collectiveTitle.he || link.collectiveTitle.en;
 
                                 if (selectedCommentaries.includes(commentaryTitle)) {
-                                    this.log(`🔍 מעבד מפרש: ${commentaryTitle} -> ${link.sourceRef}`);
+                                    this.log(`🔍 Processing commentary: ${commentaryTitle} -> ${link.sourceRef}`);
 
                                     // שלוף את טקסט הפירוש באופן חכם יותר
                                     const commentaryText = await this.fetchCommentaryTextSmart(link.sourceRef, ref);
@@ -1938,7 +1181,7 @@
                                             text: commentaryText,
                                             ref: link.sourceRef
                                         });
-                                        this.log(`✅ הוסף מפרש: ${commentaryTitle} (${commentaryText.length} תווים)`);
+                                        this.log(`✅ Added commentary: ${commentaryTitle} (${commentaryText.length} chars)`);
                                     }
                                 }
                             }
@@ -1947,25 +1190,25 @@
 
                     return commentaries;
                 } catch (error) {
-                    this.log(`❌ שגיאה בשליפת מפרשים עבור ${ref}: ${error.message}`, null, 'error');
+                    this.log(`❌ Error fetching commentaries for ${ref}: ${error.message}`, 'error');
                     return [];
                 }
             }
 
             async fetchCommentaryTextSmart(commentaryRef, originalRef) {
                 try {
-                    this.log(`📖 שולף מפרש בצורה חכמה: ${commentaryRef}`);
+                    this.log(`📖 Fetching commentary smartly: ${commentaryRef}`);
 
                     // פרק את ההפניה לזיהוי הפיסקא הספציפית
                     const { baseRef, paragraphNum } = this.parseCommentaryRef(commentaryRef, originalRef);
 
-                    this.log(`🔍 פורק: baseRef=${baseRef}, paragraphNum=${paragraphNum}`);
+                    this.log(`🔍 Parsed: baseRef=${baseRef}, paragraphNum=${paragraphNum}`);
 
                     // שלוף את כל הפירוש (הדף/פרק) בבת אחת
                     const response = await fetch(`${this.baseUrl}/texts/${encodeURIComponent(baseRef)}`);
                     const data = await response.json();
 
-                    this.log(`📊 נתוני מפרש עבור ${baseRef}:`, data);
+                    this.log(`📊 Commentary data for ${baseRef}:`, data);
 
                     // חלץ את הטקסט הספציפי מהמערך
                     let text = '';
@@ -1975,9 +1218,9 @@
                         const paragraphIndex = paragraphNum - 1;
                         if (paragraphIndex >= 0 && paragraphIndex < data.he.length) {
                             text = data.he[paragraphIndex];
-                            this.log(`✅ נמצא פסקה ספציפית ${paragraphNum}: ${text.substring(0, 100)}...`);
+                            this.log(`✅ Found specific paragraph ${paragraphNum}: ${text.substring(0, 100)}...`);
                         } else {
-                            this.log(`❌ פסקה ${paragraphNum} לא נמצאה במערך של ${data.he.length} פריטים`);
+                            this.log(`❌ Paragraph ${paragraphNum} not found in array of ${data.he.length} items`);
                         }
                     } else if (data.he) {
                         // אם אין מערך או לא יודעים את המספר, קח את הכל
@@ -1986,7 +1229,7 @@
                         } else {
                             text = data.he;
                         }
-                        this.log(`📄 משתמש בטקסט מפרש מלא (${text.length} תווים)`);
+                        this.log(`📄 Using full commentary text (${text.length} chars)`);
                     } else if (data.text) {
                         if (Array.isArray(data.text)) {
                             text = data.text.join(' ');
@@ -2000,11 +1243,11 @@
                         text = text.replace(/<[^>]*>/g, '').trim();
                     }
 
-                    this.log(`📝 טקסט מפרש סופי (${text.length} תווים): ${text.substring(0, 100)}...`);
+                    this.log(`📝 Final commentary text (${text.length} chars): ${text.substring(0, 100)}...`);
                     return text;
 
                 } catch (error) {
-                    this.log(`❌ שגיאה בשליפת טקסט מפרש: ${error.message}`, null, 'error');
+                    this.log(`❌ Error fetching commentary text: ${error.message}`, 'error');
                     return '';
                 }
             }
@@ -2029,282 +1272,283 @@
                     return { baseRef: commentaryRef, paragraphNum: null };
 
                 } catch (error) {
-                    this.log(`❌ שגיאה בפירוק הפניית מפרש: ${error.message}`);
+                    this.log(`❌ Error parsing commentary ref: ${error.message}`);
                     return { baseRef: commentaryRef, paragraphNum: null };
                 }
             }
 
-            async fetchAdditionalVersionsOptimized(ref, selectedVersions, arrayIndex) {
+            async fetchAdditionalVersions(ref, selectedVersions) {
                 if (!selectedVersions || selectedVersions.length === 0) {
                     return [];
                 }
 
+                this.log(`📚 Fetching additional versions for: ${ref}`);
                 const versions = [];
 
                 for (const version of selectedVersions) {
                     try {
+                        // ודא שיש לנו title ו-language תקינים
                         if (!version.title || !version.language) {
+                            this.log(`⚠️ Skipping invalid version:`, version);
                             continue;
                         }
-                        
-                        const cacheKey = this.getCacheKey('version_chapter', this.currentChapter, version.title);
-                        
-                        let versionChapterData;
-                        if (this.versionCache.has(cacheKey)) {
-                            this.apiStats.cacheHits++;
-                            versionChapterData = this.versionCache.get(cacheKey);
+
+                        this.log(`🔍 Fetching version: ${version.title} (${version.language})`);
+
+                        // השתמש ב-API v3 עם פרמטר version בפורמט הנכון: language|versionTitle
+                        const encodedRef = encodeURIComponent(ref);
+                        const versionParam = encodeURIComponent(`${version.language}|${version.title}`);
+                        const url = `${this.baseUrl}/v3/texts/${encodedRef}?version=${versionParam}`;
+
+                        this.log(`🌐 Version URL: ${url}`);
+
+                        const response = await fetch(url);
+
+                        if (response.ok) {
+                            const versionData = await response.json();
+
+                            let versionText = '';
+                            console.log(versionData, "versionData");
+                            
+                            // נסה לחלץ את הטקסט מהגירסה
+                            if (versionData.versions && versionData.versions.length > 0) {
+                                // API v3 מחזיר versions array
+                                const versionInfo = versionData.versions.find(v => v.versionTitle === version.title) ||
+                                    versionData.versions.find(v => v.language === version.language) ||
+                                    versionData.versions[0];
+
+                                if (versionInfo && versionInfo.text) {
+                                    if (Array.isArray(versionInfo.text)) {
+                                        versionText = versionInfo.text[0] || '';
+                                    } else {
+                                        versionText = versionInfo.text;
+                                    }
+                                }
+                            } else if (versionData.text) {
+                                // fallback לפורמט ישן
+                                if (Array.isArray(versionData.text)) {
+                                    versionText = versionData.text[0] || '';
+                                } else {
+                                    versionText = versionData.text;
+                                }
+                            } else if (versionData.he) {
+                                if (Array.isArray(versionData.he)) {
+                                    versionText = versionData.he[0] || '';
+                                } else {
+                                    versionText = versionData.he;
+                                }
+                            } else if (versionData.en) {
+                                if (Array.isArray(versionData.en)) {
+                                    versionText = versionData.en[0] || '';
+                                } else {
+                                    versionText = versionData.en;
+                                }
+                            }
+
+                            if (versionText && versionText.trim()) {
+                                // נקה מ-HTML tags
+                                versionText = versionText.replace(/<[^>]*>/g, '').trim();
+
+                                versions.push({
+                                    title: version.title,
+                                    heTitle: version.HeTile,
+                                    heRef: version.heRef,
+                                    language: version.language,
+                                    text: versionText
+                                });
+
+                                this.log(`✅ Added version: ${version.title} (${versionText.length} chars)`);
+                            } else {
+                                this.log(`⚠️ No text found for version2: ${version.title}`);
+                            }
                         } else {
-                            const chapterRef = ref.split(':')[0];
-                            const versionParam = encodeURIComponent(`${version.language}|${version.title}`);
-                            
-                            versionChapterData = await this.makeApiCall(
-                                `${this.baseUrl}/v3/texts/${encodeURIComponent(chapterRef)}?version=${versionParam}`,
-                                `טעינת גירסה ${version.title} לפרק`
-                            );
-                            
-                            this.versionCache.set(cacheKey, versionChapterData);
+                            this.log(`❌ Failed to fetch version ${version.title}: ${response.status}`);
+
+                            // נסה fallback עם API רגיל
+                            await this.fetchVersionFallback(ref, version, versions);
                         }
-                        
-                        let versionText = '';
-                        if (versionChapterData.versions && versionChapterData.versions[0] && versionChapterData.versions[0].text) {
-                            versionText = versionChapterData.versions[0].text[arrayIndex];
-                        }
-                        
-                        if (versionText && versionText.trim()) {
-                            versionText = versionText.replace(/<[^>]*>/g, '').trim();
-                            
-                            versions.push({
-                                title: version.title,
-                                language: version.language,
-                                text: versionText
-                            });
-                        }
-                        
+
+                        // השהיה קצרה בין בקשות
+                        await new Promise(resolve => setTimeout(resolve, 100));
+
                     } catch (error) {
-                        this.log(`❌ שגיאה בטעינת גירסה ${version.title}: ${error.message}`, null, 'error');
+                        this.log(`❌ Error fetching version ${version.title}: ${error.message}`, 'error');
+
+                        // נסה fallback במקרה של שגיאה
+                        await this.fetchVersionFallback(ref, version, versions);
                     }
                 }
 
+                this.log(`📚 Fetched ${versions.length} additional versions`);
                 return versions;
             }
 
-            createProfessionalWordDocument(documentData) {
+            async fetchVersionFallback(ref, version, versions) {
+                try {
+                    this.log(`🔄 Trying fallback for version: ${version.title}`);
+
+                    // נסה עם API רגיל עם פרמטר version
+                    const versionParam = encodeURIComponent(`${version.language}|${version.title}`);
+                    const url = `${this.baseUrl}/v3/texts/${encodeURIComponent(ref)}?version=${versionParam}`;
+
+                    this.log(`🌐 Fallback URL: ${url}`);
+
+                    const response = await fetch(url);
+
+                    if (response.ok) {
+                        const versionData = await response.json();
+
+                        let versionText = '';
+
+                        if (versionData.text && Array.isArray(versionData.text) && versionData.text.length > 0) {
+                            versionText = versionData.text[0];
+                        } else if (versionData.text) {
+                            versionText = versionData.text;
+                        } else if (versionData.he && Array.isArray(versionData.he) && versionData.he.length > 0) {
+                            versionText = versionData.he[0];
+                        } else if (versionData.he) {
+                            versionText = versionData.he;
+                        } else if (versionData.en && Array.isArray(versionData.en) && versionData.en.length > 0) {
+                            versionText = versionData.en[0];
+                        } else if (versionData.en) {
+                            versionText = versionData.en;
+                        }
+
+                        if (versionText && versionText.trim()) {
+                            versionText = versionText.replace(/<[^>]*>/g, '').trim();
+
+                            // בדוק אם עוד לא הוספנו את הגירסה הזו
+                            const existingVersion = versions.find(v => v.title === version.title);
+                            if (!existingVersion) {
+                                versions.push({
+                                    title: version.title,
+                                    language: version.language,
+                                    text: versionText
+                                });
+
+                                this.log(`✅ Fallback success: ${version.title} (${versionText.length} chars)`);
+                            }
+                        } else {
+                            this.log(`⚠️ Fallback: No text found for ${version.title}`);
+                        }
+                    } else {
+                        this.log(`❌ Fallback also failed: ${response.status}`);
+                    }
+
+                } catch (error) {
+                    this.log(`❌ Fallback error: ${error.message}`, 'error');
+                }
+            }
+
+            createWordDocument(documentData) {
                 let html = `
                 <!DOCTYPE html>
                 <html dir="rtl" lang="he">
                 <head>
                     <meta charset="UTF-8">
                     <style>
-                        @page {
-                            margin: 2cm;
-                            direction: rtl;
-                        }
-                        
                         body { 
-                            font-family: 'David', 'Frank Ruhl Libre', 'Times New Roman', serif; 
+                            font-family: 'David', 'Times New Roman', serif; 
                             direction: rtl; 
                             text-align: right;
                             line-height: 1.8;
-                            margin: 0;
-                            color: #333;
-                            font-size: 16px;
+                            margin: 0.8cm;
                         }
-                        
-                        .document-header { 
-                            text-align: center; 
-                            margin-bottom: 40px;
-                            padding-bottom: 20px;
-                            border-bottom: 3px solid #18345d;
-                        }
-                        
                         .main-title { 
-                            font-size: 28px; 
+                            font-size: 24px; 
                             font-weight: bold; 
-                            color: #18345d;
-                            margin-bottom: 10px;
+                            text-align: center; 
+                            margin-bottom: 30px;
+                            border-bottom: 2px solid #333;
+                            padding-bottom: 10px;
                         }
-                        
-                        .subtitle {
-                            font-size: 16px;
+                        .paragraph-container { 
+                            margin-bottom: 30px; 
+                            padding: 15px;
+                            border: 1px solid #ddd;
+                            border-radius: 5px;
+                        }
+                        .paragraph-header { 
+                            font-size: 14px; 
+                            font-weight: bold; 
                             color: #666;
-                            margin-bottom: 15px;
+                            margin-bottom: 10px;
+                            background-color: #f0f0f0;
+                            padding: 5px 10px;
+                            border-radius: 3px;
                         }
-                        
-                        .meta-info {
-                            font-size: 14px;
-                            color: #888;
-                            font-style: italic;
-                        }
-                        
-                        .verse-container { 
-                            margin-bottom: 35px; 
-                            padding: 20px;
-                            background: #fafafa;
-                            border-right: 4px solid #18345d;
-                            border-radius: 8px;
-                            page-break-inside: avoid;
-                        }
-                        
-                        .verse-header { 
+                        .paragraph-text { 
                             font-size: 16px; 
                             font-weight: bold; 
-                            color: #18345d;
                             margin-bottom: 15px;
-                            padding-bottom: 8px;
-                            border-bottom: 1px solid #ddd;
+                            line-height: 1.6;
                         }
-                        
-                        .verse-text { 
-                            font-size: 18px; 
-                            font-weight: 600; 
-                            margin-bottom: 20px;
-                            line-height: 1.8;
-                            color: #222;
-                            background: white;
-                            padding: 15px;
-                            border-radius: 6px;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        .additional-versions-section {
+                            margin-top: 15px;
+                            padding-top: 10px;
+                            border-top: 1px solid #e0e0e0;
                         }
-                        
-                        .verse-number {
-                            display: inline-block;
-                            background: #18345d;
-                            color: white;
-                            font-size: 14px;
-                            font-weight: bold;
-                            padding: 4px 8px;
-                            border-radius: 50%;
-                            margin-left: 10px;
-                            min-width: 24px;
-                            text-align: center;
+                        .additional-version {
+                            margin: 10px 0;
+                            padding: 10px;
+                            background-color: #f0f8ff;
+                            border-right: 3px solid #4682b4;
+                            border-radius: 3px;
                         }
-                        
-                        .versions-section {
-                            margin-top: 20px;
-                            padding-top: 15px;
-                            border-top: 2px dashed #ddd;
-                        }
-                        
-                        .version-item {
-                            margin: 15px 0;
-                            padding: 15px;
-                            background: white;
-                            border-right: 3px solid #3498db;
-                            border-radius: 6px;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-                        }
-                        
                         .version-title {
                             font-weight: bold;
-                            color: #3498db;
-                            margin-bottom: 8px;
-                            font-size: 15px;
-                        }
-                        
-                        .version-text {
-                            font-size: 16px;
-                            color: #444;
-                            line-height: 1.6;
-                        }
-                        
-                        .commentaries-section {
-                            margin-top: 20px;
-                            padding-top: 15px;
-                            border-top: 2px dashed #ddd;
-                        }
-                        
-                        .commentary-item {
-                            margin: 15px 0;
-                            padding: 15px;
-                            background: white;
-                            border-right: 3px solid #8e44ad;
-                            border-radius: 6px;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-                        }
-                        
-                        .commentary-title { 
-                            font-size: 15px; 
-                            font-weight: bold; 
-                            color: #8e44ad;
-                            margin-bottom: 8px;
-                        }
-                        
-                        .commentary-text { 
-                            font-size: 15px; 
-                            color: #555;
-                            line-height: 1.6;
-                        }
-                        
-                        .section-divider {
-                            text-align: center;
-                            margin: 30px 0;
-                            color: #999;
-                            font-size: 24px;
-                        }
-                        
-                        .footer {
-                            margin-top: 40px;
-                            padding-top: 20px;
-                            border-top: 2px solid #18345d;
-                            text-align: center;
-                            color: #666;
+                            color: #4682b4;
+                            margin-bottom: 5px;
                             font-size: 14px;
                         }
-                        
-                        @media print {
-                            .verse-container {
-                                break-inside: avoid;
-                            }
-                            
-                            body {
-                                font-size: 14px;
-                            }
-                            
-                            .main-title {
-                                font-size: 24px;
-                            }
+                        .version-text {
+                            font-size: 15px;
+                            color: #2c3e50;
+                            line-height: 1.5;
+                        }
+                        .commentary-section {
+                            margin-top: 15px;
+                            padding-top: 10px;
+                            border-top: 1px dashed #ccc;
+                        }
+                        .commentary-title { 
+                            font-size: 14px; 
+                            font-weight: bold; 
+                            color: #8e44ad;
+                            margin-bottom: 5px;
+                        }
+                        .commentary-text { 
+                            font-size: 13px; 
+                            color: #555;
+                            margin-bottom: 10px;
+                            padding: 8px;
+                            background-color: #fafafa;
+                            border-right: 3px solid #8e44ad;
                         }
                     </style>
                 </head>
                 <body>
                 `;
 
-                // כותרת המסמך
-                let title = this.currentBook.heTitle || this.currentBook.title;
-                if (this.currentSection) {
-                    title += ` - ${this.currentSection.title}`;
-                }
-                title += ` פרק ${this.currentChapter}`;
+                // כותרת ראשית
+                let title = this.chapterInfo.heSectionRef || this.chapterInfo.heTitle;
 
-                const start = documentData.length > 0 ? documentData[0].paragraphNum : '';
-                const end = documentData.length > 0 ? documentData[documentData.length - 1].paragraphNum : '';
-                const range = start && end ? (start === end ? `פסוק ${start}` : `פסוקים ${start}-${end}`) : '';
+                html += `<h1 class="main-title">${title}</h1>`;
 
-                html += `
-                <div class="document-header">
-                    <div class="main-title">${title}</div>
-                    <div class="subtitle">${range}</div>
-                    <div class="meta-info">נוצר באמצעות ניווט ספריא • ${new Date().toLocaleDateString('he-IL')}</div>
-                </div>
-                `;
-
-                // תוכן הפסוקים
-                documentData.forEach((verse, index) => {
+                // הוספת כל הפיסקאות
+                documentData.forEach(paragraph => {
                     html += `
-                    <div class="verse-container">
-                        <div class="verse-header">
-                            <span class="verse-number">${verse.paragraphNum}</span>
-                            ${verse.ref}
-                        </div>
-                        <div class="verse-text">${verse.hebrewText}</div>
+                    <div class="paragraph-container">
+                        <div class="paragraph-header">${paragraph.heTitle || paragraph.ref}</div>
+                        <div class="paragraph-text">${paragraph.hebrewText}</div>
                     `;
 
-                    // גירסאות נוספות
-                    if (verse.additionalVersions && verse.additionalVersions.length > 0) {
-                        html += `<div class="versions-section">`;
-                        verse.additionalVersions.forEach(version => {
+                    // הוספת גירסאות נוספות
+                    if (paragraph.additionalVersions && paragraph.additionalVersions.length > 0) {
+                        html += `<div class="additional-versions-section">`;
+                        paragraph.additionalVersions.forEach(version => {
                             html += `
-                            <div class="version-item">
+                            <div class="additional-version">
                                 <div class="version-title">${version.title} (${version.language})</div>
                                 <div class="version-text">${version.text}</div>
                             </div>
@@ -2313,127 +1557,115 @@
                         html += `</div>`;
                     }
 
-                    // מפרשים
-                    if (verse.commentaries && verse.commentaries.length > 0) {
-                        html += `<div class="commentaries-section">`;
-                        verse.commentaries.forEach(commentary => {
+                    // הוספת פירושים
+                    if (paragraph.commentaries && paragraph.commentaries.length > 0) {
+                        html += `<div class="commentary-section">`;
+                        paragraph.commentaries.forEach(commentary => {
                             html += `
-                            <div class="commentary-item">
-                                <div class="commentary-title">${commentary.title}</div>
-                                <div class="commentary-text">${commentary.text}</div>
-                            </div>
+                            <div class="commentary-title">${commentary.title}</div>
+                            <div class="commentary-text">${commentary.text}</div>
                             `;
                         });
                         html += `</div>`;
                     }
 
                     html += `</div>`;
-
-                    // מפריד בין פסוקים
-                    if (index < documentData.length - 1) {
-                        html += `<div class="section-divider">◆</div>`;
-                    }
                 });
-
-                // כותרת תחתונה
-                html += `
-                <div class="footer">
-                    <p>מסמך זה נוצר באמצעות ניווט ספריא</p>
-                    <p>מקור: ספריא (sefaria.org) • ${documentData.length} פסוקים</p>
-                </div>
-                `;
 
                 html += `</body></html>`;
 
                 // הורדת הקובץ
-                const blob = new Blob([html], { 
-                    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                });
+                const blob = new Blob([html], { type: 'application/msword' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                
-                // יצירת שם קובץ נקי
-                const cleanTitle = title.replace(/[^\u0590-\u05FF\w\s-]/g, '').trim();
-                a.download = `${cleanTitle}.doc`;
-                
+                a.download = `${title.replace(/[^\u0590-\u05FF\w\s-]/g, '')}.doc`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-
-                this.log(`📄 מסמך הורד: ${cleanTitle}.doc`);
             }
 
-            // פונקציות ניווט
-            goBack() {
-                if (this.currentPath.length > 0) {
-                    this.currentPath.pop();
-                    if (this.currentPath.length === 0) {
-                        this.loadCategories();
-                    } else {
-                        const parent = this.currentPath[this.currentPath.length - 1];
-                        this.navigateToCategory(parent);
-                        this.currentPath.pop();
+            async loadCommentaries() {
+                try {
+                    this.log('📝 Loading commentaries...');
+                    const start = document.getElementById('startParagraph').value;
+
+                    if (!start) {
+                        document.getElementById('commentariesContainer').innerHTML = '<div>בחר פיסקאות תחילה</div>';
+                        return;
                     }
-                    this.updateBreadcrumb();
-                    this.updateBackButton();
+
+                    // בנה הפניה לפיסקא ראשונה כדוגמה
+                    let sampleRef;
+                    if (this.currentSection) {
+                        sampleRef = `${this.currentBook.title}, ${this.currentSection.key} ${this.currentChapter}:${start}`;
+                    } else {
+                        sampleRef = `${this.currentBook.title} ${this.currentChapter}:${start}`;
+                    }
+
+                    this.log(`🔗 Sample commentary reference: ${sampleRef}`);
+
+                    // נסה מספר דרכים למצוא מפרשים
+                    const commentaries = await this.discoverCommentaries(sampleRef);
+
+                    const container = document.getElementById('commentariesContainer');
+                    container.innerHTML = '';
+
+                    if (commentaries.size > 0) {
+                        commentaries.forEach(title => {
+                            const label = document.createElement('label');
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.value = title;
+
+                            label.appendChild(checkbox);
+                            label.appendChild(document.createTextNode(title));
+                            container.appendChild(label);
+                        });
+
+                        this.log(`✅ Found ${commentaries.size} commentaries`);
+                    } else {
+                        container.innerHTML = '<div>לא נמצאו מפרשים זמינים</div>';
+                        this.log('❌ No commentaries found');
+                    }
+                } catch (error) {
+                    this.log(`❌ Error loading commentaries: ${error.message}`, 'error');
+                    document.getElementById('commentariesContainer').innerHTML = '<div>שגיאה בטעינת מפרשים</div>';
                 }
             }
 
-            goHome() {
-                this.currentPath = [];
-                this.currentBook = null;
-                this.currentSection = null;
-                this.currentSubSection = null; // איפוס רמת תת-חלק
-                this.currentChapter = null;
+            async discoverCommentaries(ref) {
+                const commentaries = new Set();
 
-                // הסר ממשק מילון אם קיים
-                const dictionaryStep = document.getElementById('dictionaryStep');
-                if (dictionaryStep) {
-                    dictionaryStep.remove();
+                // שיטה 1: שלוף קישורים ישירים
+                try {
+                    const response = await fetch(`${this.baseUrl}/links/${encodeURIComponent(ref)}`);
+
+                    if (response.ok) {
+                        const links = await response.json();
+
+                        if (Array.isArray(links)) {
+                            links.forEach(link => {
+                                if (link.category === 'Commentary' && link.collectiveTitle) {
+                                    const title = link.collectiveTitle.he || link.collectiveTitle.en;
+                                    if (title) {
+                                        commentaries.add(title);
+                                        this.log(`📝 Found commentary: ${title}`);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                } catch (error) {
+                    this.log(`❌ Error fetching links: ${error.message}`);
                 }
 
-                document.getElementById('categoriesStep').classList.remove('hidden');
-                document.getElementById('sectionStep').classList.add('hidden');
-                document.getElementById('chapterStep').classList.add('hidden');
-                document.getElementById('paragraphStep').classList.add('hidden');
+                if (commentaries.size === 0) {
+                    this.log('🔍 No links found, trying known commentaries');
+                }
 
-                this.loadCategories();
-                this.updateBreadcrumb();
-                this.updateBackButton();
-
-                this.log('🏠 חזרה לדף הבית');
-            }
-
-            backToBook() {
-                this.currentSection = null;
-                this.currentSubSection = null; // איפוס רמת תת-חלק
-
-                document.getElementById('sectionStep').classList.add('hidden');
-                document.getElementById('chapterStep').classList.add('hidden');
-                document.getElementById('paragraphStep').classList.add('hidden');
-                document.getElementById('categoriesStep').classList.remove('hidden');
-
-                this.log('📖 חזרה לבחירת ספר');
-            }
-
-            backToSection() {
-                this.currentSubSection = null; // איפוס רמת תת-חלק
-                
-                document.getElementById('chapterStep').classList.add('hidden');
-                document.getElementById('paragraphStep').classList.add('hidden');
-                document.getElementById('sectionStep').classList.remove('hidden');
-
-                this.log('📑 חזרה לבחירת חלק');
-            }
-
-            backToChapter() {
-                // לא מאפס currentSubSection כי אולי נחזור לאותו תת-חלק
-                document.getElementById('paragraphStep').classList.add('hidden');
-                document.getElementById('chapterStep').classList.remove('hidden');
-
-                this.log('🔢 חזרה לבחירת פרק');
+                return commentaries;
             }
 
             updateBreadcrumb() {
@@ -2458,7 +1690,7 @@
             // פונקציות עזר
             log(message, data = null, type = 'info') {
                 const debugPanel = document.getElementById('debugPanel');
-                const timestamp = new Date().toLocaleTimeString('he-IL');
+                const timestamp = new Date().toLocaleTimeString();
 
                 let logEntry = `[${timestamp}] ${message}`;
                 if (data) {
@@ -2466,62 +1698,37 @@
                 }
 
                 const logDiv = document.createElement('div');
-                logDiv.style.color = type === 'error' ? '#e74c3c' : type === 'success' ? '#27ae60' : '#3498db';
+                logDiv.style.color = type === 'error' ? '#ff6b6b' : type === 'success' ? '#51cf66' : '#74c0fc';
                 logDiv.style.marginBottom = '5px';
-                logDiv.style.borderBottom = '1px solid #444';
-                logDiv.style.paddingBottom = '3px';
                 logDiv.textContent = logEntry;
 
                 debugPanel.appendChild(logDiv);
                 debugPanel.scrollTop = debugPanel.scrollHeight;
 
-                // הגבל את מספר ההודעות בלוג
-                while (debugPanel.children.length > 100) {
-                    debugPanel.removeChild(debugPanel.firstChild);
-                }
-
                 console.log(message, data);
             }
 
             clearDebug() {
-                const debugPanel = document.getElementById('debugPanel');
-                debugPanel.innerHTML = '<div>📱 לוג נוקה • סטטיסטיקות API:</div>';
-                
-                // הצג סטטיסטיקות API
-                const statsDiv = document.createElement('div');
-                statsDiv.style.color = '#3498db';
-                statsDiv.style.margin = '10px 0';
-                statsDiv.innerHTML = `
-                    📊 סה"כ קריאות: ${this.apiStats.totalCalls}<br>
-                    ✅ הצליחו: ${this.apiStats.successCalls}<br>
-                    ❌ נכשלו: ${this.apiStats.failedCalls}<br>
-                    📋 שימוש במטמון: ${this.apiStats.cacheHits}
-                `;
-                debugPanel.appendChild(statsDiv);
+                document.getElementById('debugPanel').innerHTML = '<div>📱 Debug cleared</div>';
             }
 
             showError(message) {
                 const errorDiv = document.createElement('div');
                 errorDiv.className = 'error';
-                errorDiv.innerHTML = `
-                    <strong>❌ שגיאה:</strong> ${message}
-                    <br><small>בדוק את הלוג למידע נוסף</small>
-                `;
+                errorDiv.textContent = message;
                 document.body.appendChild(errorDiv);
 
                 setTimeout(() => {
                     if (errorDiv.parentNode) {
                         errorDiv.parentNode.removeChild(errorDiv);
                     }
-                }, 7000);
+                }, 5000);
             }
 
             showSuccess(message) {
                 const successDiv = document.createElement('div');
                 successDiv.className = 'success';
-                successDiv.innerHTML = `
-                    <strong>✅ הצלחה:</strong> ${message}
-                `;
+                successDiv.textContent = message;
                 document.body.appendChild(successDiv);
 
                 setTimeout(() => {
