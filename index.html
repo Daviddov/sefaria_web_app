@@ -20,12 +20,10 @@
                 </select>
             </div>
 
-            <button class="generate-btn" id="generateBtn">📄 צור מסמך Word</button>
+            <button class="generate-btn" id="generateBtn" disabled>📄 צור מסמך Word</button>
             <div id="status" class="status" style="display: none;"></div>
         </div>
     </div>
-
-
 
     <script>
         class Manager {
@@ -37,6 +35,7 @@
 
             init() {
                 document.getElementById('generateBtn').addEventListener('click', () => this.generateDocument());
+                document.getElementById('sectionSelect').addEventListener('change', (event) => this.updateSelectedSection(event));
             }
 
             log(...args) {
@@ -127,32 +126,6 @@
                 return refs;
             }
 
-            async fetchCommentariesForParagraphs(paragraphsRefs) {
-                const allCommentaries = [];
-                let counter = 0;
-                for (const paragraphRefs of paragraphsRefs) {
-                    const commentaries = [];
-                    if (counter++ === 3) break;
-                    for (const ref of paragraphRefs) {
-                        const commentary = await this.fetchCommentaries(ref);
-                        commentaries.push(commentary);
-                    }
-                    allCommentaries.push(commentaries);
-                }
-                return allCommentaries;
-            }
-
-            async fetchInterpretation(ref) {
-                try {
-                    const textUrl = `${this.baseUrl}/v3/texts/${encodeURIComponent(ref)}`;
-                    this.log(`🌐 Text URL: ${textUrl}`);
-                    const data = await this.fetchData(textUrl);
-                    return data;
-                } catch (error) {
-                    this.log(`❌ Error fetching chapter data: ${error.message}`, 'error');
-                }
-            }
-
             orderCommentaries(allCommentaries) {
                 const mapCommentaries = new Map();
 
@@ -161,7 +134,6 @@
 
                     for (const commentary of arrayCommentaries) {
                         if (!commentary || !commentary.anchorRef || !commentary.ref || commentary.category !== "Commentary") {
-                            // console.warn("Invalid commentary skipped:", commentary);
                             continue;
                         }
 
@@ -194,6 +166,38 @@
                 select.disabled = false;
             }
 
+            async updateSelectedSection(event) {
+                const selectedIndex = event.target.value;
+                if (selectedIndex === '') return;
+
+                try {
+                    this.showStatus('טוען פרק חדש...', 'loading');
+
+                    const book = this.book;
+                    book.currentSectionTitle = book.sectionsTitles[selectedIndex][0].text;
+                    book.currentSectionTitleHe = book.sectionsTitles[selectedIndex][1].text;
+                    book.paragraphsRefs = this.extractParagraphRefs(this.bookData, book.currentSectionTitle);
+                    book.chapters.refs = book.paragraphsRefs;
+
+                    const chapterRef = `${book.name}, ${book.currentSectionTitle}`;
+                    const chapterData = await this.fetchChapterData(chapterRef);
+
+                    book.chapters.alt = chapterData.alts || [];
+                    book.chapters.text = chapterData?.versions?.[0]?.text || [];
+                    book.chapters.heText = chapterData?.versions?.[1]?.text || [];
+
+                    const unorderedCommentaries = await this.fetchCommentaries(chapterRef);
+                    book.chapters.commentaries = this.orderCommentaries(unorderedCommentaries);
+
+                    this.book = book;
+                    this.showStatus('פרק נטען בהצלחה!', 'success');
+                    document.getElementById('generateBtn').disabled = false;    
+                } catch (error) {
+                    console.error('Error updating section:', error);
+                    this.showError('שגיאה בעדכון הפרק: ' + error.message);
+                }
+            }
+
             async generateDocument() {
                 const book = this.book;
                 if (!book) {
@@ -208,8 +212,7 @@
                     this.endnoteCounter = 1;
 
                     // יצירת כותרת המסמך
-                    let title = `ספר הזוהר - ${book.sectionsTitles[0][1].text}`;
-
+                    let title = `ספר הזוהר - ${book.currentSectionTitleHe}`;
 
                     let html = `
                     <!DOCTYPE html>
@@ -217,188 +220,8 @@
                     <head>
                         <meta charset="UTF-8">
                         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-                        <title>${title}</title>`
-                        let style = false;
-                    if (style === true) {
-                        html+=`<style>
-                            @page {
-                                size: A4;
-                                margin: 2.5cm;
-                                direction: rtl;
-                            }
-                            
-                            body {
-                                font-family: 'David', 'Times New Roman', serif;
-                                direction: rtl;
-                                text-align: right;
-                                line-height: 1.6;
-                                font-size: 14pt;
-                                margin: 0;
-                                padding: 0;
-                            }
-                            
-                            .main-title {
-                                font-size: 24pt;
-                                font-weight: bold;
-                                text-align: center;
-                                color: #2E74B5;
-                                margin-bottom: 30px;
-                                border-bottom: 2px solid #2E74B5;
-                                padding-bottom: 10px;
-                            }
-                            
-                            .document-info {
-                                background-color: #f8f9fa;
-                                padding: 15px;
-                                border-radius: 5px;
-                                margin-bottom: 25px;
-                                border: 1px solid #dee2e6;
-                                font-size: 12pt;
-                            }
-                            
-                            .chapter-title {
-                                font-size: 18pt;
-                                font-weight: bold;
-                                color: #1F4E79;
-                                margin-top: 25px;
-                                margin-bottom: 15px;
-                                border-right: 4px solid #1F4E79;
-                                padding-right: 10px;
-                            }
-                            
-                            .paragraph-container {
-                                margin-bottom: 25px;
-                                page-break-inside: avoid;
-                            }
-                            
-                            .paragraph-header {
-                                font-size: 12pt;
-                                color: #666;
-                                margin-bottom: 8px;
-                                padding: 5px 10px;
-                                background-color: #f1f3f4;
-                                border-radius: 3px;
-                            }
-                            
-                            .paragraph-number {
-                                font-weight: bold;
-                                color: #1F4E79;
-                                margin-left: 10px;
-                            }
-                            
-                            .paragraph-text {
-                                font-size: 16pt;
-                                line-height: 1.8;
-                                margin-bottom: 15px;
-                                padding: 10px;
-                                background-color: #fafafa;
-                                border-radius: 5px;
-                                text-align: justify;
-                            }
-                            
-                            .paragraph-commentaries-section {
-                                background-color: #f8f9fa;
-                                border: 1px solid #dee2e6;
-                                border-radius: 8px;
-                                padding: 15px;
-                                margin-top: 15px;
-                            }
-                            
-                            .paragraph-commentaries-title {
-                                font-size: 14pt;
-                                font-weight: bold;
-                                color: #1F4E79;
-                                margin-bottom: 12px;
-                                text-align: center;
-                                border-bottom: 1px solid #dee2e6;
-                                padding-bottom: 8px;
-                            }
-                            
-                            .inline-commentary {
-                                background-color: white;
-                                border: 1px solid #e0e0e0;
-                                border-radius: 5px;
-                                padding: 12px;
-                                margin-bottom: 12px;
-                                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                            }
-                            
-                            .inline-commentary-header {
-                                margin-bottom: 8px;
-                                display: flex;
-                                align-items: center;
-                                border-bottom: 1px dotted #ccc;
-                                padding-bottom: 5px;
-                            }
-                            
-                            .inline-commentary-number {
-                                background-color: #1F4E79;
-                                color: white;
-                                border-radius: 50%;
-                                width: 25px;
-                                height: 25px;
-                                display: inline-flex;
-                                align-items: center;
-                                justify-content: center;
-                                font-weight: bold;
-                                font-size: 12pt;
-                                margin-left: 10px;
-                                flex-shrink: 0;
-                            }
-                            
-                            .inline-commentary-title {
-                                font-weight: bold;
-                                color: #2E74B5;
-                                font-size: 13pt;
-                            }
-                            
-                            .inline-commentary-text {
-                                line-height: 1.6;
-                                margin-bottom: 8px;
-                                text-align: justify;
-                                font-size: 12pt;
-                            }
-                            
-                            .inline-commentary-link {
-                                color: #0066cc;
-                                text-decoration: underline;
-                                font-size: 11pt;
-                                display: block;
-                                text-align: left;
-                                margin-top: 5px;
-                            }
-                            
-                            .endnote-ref, .endnote-back {
-                                color: #1F4E79;
-                                text-decoration: none;
-                                font-weight: bold;
-                                background-color: #e3f2fd;
-                                padding: 2px 6px;
-                                border-radius: 3px;
-                                margin: 0 2px;
-                            }
-                            
-                            .endnote-ref:hover, .endnote-back:hover {
-                                background-color: #bbdefb;
-                            }
-                            
-                            sup {
-                                font-size: 10pt;
-                                vertical-align: super;
-                            }
-                            
-                            .timestamp {
-                                margin-top: 40px;
-                                padding-top: 20px;
-                                border-top: 1px solid #ccc;
-                                text-align: center;
-                                font-size: 10pt;
-                                color: #666;
-                                font-style: italic;
-                            }
-                        </style>`
-                    }
-                    html += `</head>
+                        <title>${title}</title>
+                    </head>
                     <body>`;
 
                     // כותרת ומידע על המסמך
@@ -429,7 +252,6 @@
                             html += `
                                 <div class="paragraph-header" style="page-break-before: always;">
                                     <span class="paragraph-number">${altText}</span>
-                                    
                                 </div>`;
 
                             // הטקסט הראשי
@@ -445,11 +267,10 @@
 
                             html += `<div class="paragraph-text" style="font-size: 18px; font-weight: bold;">${paragraphText}</div>`;
                             html += `<div class="paragraph-text-he" style="font-size: 17px;">${paragraphTextHe}</div>`;
-                            html += `<hr>`
+                            html += `<hr>`;
 
                             // פירושים מקומיים תחת הפיסקה
                             if (commentaries && commentaries.length > 0) {
-
                                 let commentaryCounter = this.endnoteCounter - commentaries.length;
                                 commentaries.forEach((commentary) => {
                                     const commentaryText = commentary.he || commentary.text || 'אין טקסט זמין';
@@ -469,8 +290,6 @@
                                         </div>`;
                                     commentaryCounter++;
                                 });
-
-                                html += `</div>`;
                             }
 
                             html += `</div>`;
@@ -511,6 +330,7 @@
                 m.showStatus('טוען נתונים...', 'loading');
 
                 const bookData = await m.fetchSections(bookName);
+                m.bookData = bookData; // Store book data for later use in section updates
 
                 const book = {
                     name: bookName,
@@ -523,26 +343,14 @@
                         text: [],
                         commentaries: new Map()
                     },
-                    currentSectionTitle: null
+                    currentSectionTitle: null,
+                    currentSectionTitleHe: null
                 };
 
                 book.sectionsTitles = m.extractSectionTitles(bookData);
                 m.populateSectionSelect(book);
 
-                book.currentSectionTitle = book.sectionsTitles[0][0].text;
-                book.paragraphsRefs = m.extractParagraphRefs(bookData, book.currentSectionTitle);
-                book.chapters.refs = book.paragraphsRefs;
-
-                const chapterRef = `${bookName}, ${book.currentSectionTitle}`;
-                const chapterData = await m.fetchChapterData(chapterRef);
-
-                book.chapters.alt = chapterData.alts || [];
-                book.chapters.text = chapterData?.versions?.[0]?.text || [];
-                book.chapters.heText = chapterData?.versions?.[1]?.text || [];
-
-                const unorderedCommentaries = await m.fetchCommentaries(chapterRef);
-                book.chapters.commentaries = m.orderCommentaries(unorderedCommentaries);
-
+                // לא טוען אוטומטית את הפרק הראשון
                 m.book = book;
 
                 m.showStatus('נתונים נטענו בהצלחה!', 'success');
@@ -554,5 +362,4 @@
         })();
     </script>
 </body>
-
 </html>
