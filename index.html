@@ -198,7 +198,7 @@
                 }
             }
 
-            async generateDocument() {
+                      async generateDocument() {
                 const book = this.book;
                 if (!book) {
                     this.showError('הספר לא נטען עדיין');
@@ -215,14 +215,150 @@
                     let title = `ספר הזוהר - ${book.currentSectionTitleHe}`;
 
                     let html = `
-                    <!DOCTYPE html>
-                    <html dir="rtl" lang="he">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-                        <title>${title}</title>
-                    </head>
-                    <body>`;
+        <!DOCTYPE html>
+        <html dir="rtl" lang="he">
+        <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+            <title>${title}</title>
+            <style>
+
+                
+                body {
+                    font-family: "Times New Roman", serif;
+                    direction: rtl;
+                    text-align: right;
+                }
+                
+                /* סגנון כותרת ראשית */
+                .main-title {
+                    mso-style-name: "כותרת ראשית זוהר";
+                    font-size: 24pt;
+                    font-weight: bold;
+                    page-break-inside: avoid;
+                }
+                
+                /* סגנון כותרת פרק */
+                .chapter-title {
+                    mso-style-name: "כותרת פרק זוהר";
+                    font-size: 20pt;
+                    font-weight: bold;
+                    page-break-before: always;
+                    page-break-inside: avoid;
+
+                }
+                
+                /* סגנון כותרת פיסקא */
+                .paragraph-header {
+                    mso-style-name: "כותרת פיסקא זוהר";
+                    font-size: 16pt;
+                    font-weight: bold;
+                    page-break-before: always;
+                }
+                
+                .paragraph-number {
+                    mso-style-name: "מספר פיסקא זוהר";
+                    font-size: 14pt;
+                    color: #4B0082;
+                    font-weight: bold;
+                }
+                
+                /* סגנון טקסט ארמי ראשי */
+                .paragraph-text {
+                    mso-style-name: "טקסט ארמי זוהר";
+                    font-size: 14.5pt;
+                    font-weight: bold;
+
+                }
+                
+                /* סגנון טקסט עברי */
+                .paragraph-text-he {
+                    font-size: 14pt;
+                    mso-style-name: "טקסט עברי זוהר";                }
+                
+                /* סגנון מיכל פיסקא */
+                .paragraph-container {
+                    mso-style-name: "מיכל פיסקא זוהר";
+
+                    page-break-inside: avoid;
+                }
+                
+                
+                /* סגנון פירוש מקומי */
+                .inline-commentary {
+                    mso-style-name: "פירוש מקומי זוהר";
+
+                }
+                
+                /* סגנון כותרת פירוש */
+                .inline-commentary-header {
+                    mso-style-name: "כותרת פירוש זוהר";
+
+                }
+                
+                /* סגנון מספר פירוש */
+                .inline-commentary-number {
+                    mso-style-name: "מספר פירוש זוהר";
+                    font-size: 10pt;
+                    color: #4B0082;
+                    font-weight: bold;
+
+                }
+                
+                /* סגנון כותרת מקור */
+                .inline-commentary-title {
+                    mso-style-name: "כותרת מקור זוהר";
+
+                }
+                
+                /* סגנון טקסט פירוש */
+                .inline-commentary-text {
+                    mso-style-name: "טקסט פירוש זוהר";
+  
+                }
+                
+                /* סגנונות קישורים */
+                .endnote-ref, .endnote-back {
+                    mso-style-name: "קישור פירוש זוהר";
+                    color: #FF4500;
+                    text-decoration: none;
+                    font-weight: bold;
+                    font-size: 10pt;
+                }
+                
+                .endnote-ref:hover, .endnote-back:hover {
+                    text-decoration: underline;
+                    color: #FF6347;
+                }
+                
+                /* סגנון עליון לקישורים */
+                sup {
+                    font-size: 8pt;
+                    vertical-align: super;
+                }
+                
+                /* סגנונות הדפסה */
+                @media print {
+                    .paragraph-container {
+                        page-break-inside: avoid;
+                    }
+                    
+                    .chapter-title {
+                        page-break-before: always;
+                        page-break-after: avoid;
+                    }
+                    
+                    .paragraph-header {
+                        page-break-after: avoid;
+                    }
+                    
+                    .inline-commentary {
+                        page-break-inside: avoid;
+                    }
+                }
+            </style>
+        </head>
+        <body>`;
 
                     // כותרת ומידע על המסמך
                     html += `<div class="main-title">${title}</div>`;
@@ -250,9 +386,9 @@
 
                             // כותרת הפיסקא
                             html += `
-                                <div class="paragraph-header" style="page-break-before: always;">
-                                    <span class="paragraph-number">${altText}</span>
-                                </div>`;
+                    <div class="paragraph-header">
+                        <span class="paragraph-number">${altText}</span>
+                    </div>`;
 
                             // הטקסט הראשי
                             let paragraphText = aramicText || altText;
@@ -261,12 +397,18 @@
 
                             // הוספת מספור פירושים (עם קישורים אינטראקטיביים)
                             commentaries.forEach(() => {
-                                paragraphText += `<sup><a name="endnote_ref_${this.endnoteCounter}"></a><a href="#endnote_${this.endnoteCounter}" class="endnote-ref">${this.endnoteCounter}</a></sup>`;
+                                paragraphText += `
+                                    <span class="MsoFootnoteReference">
+                                        <a href="#ftn${this.endnoteCounter}" name="ftnref${this.endnoteCounter}">
+                                            <sup>${this.endnoteCounter}</sup>
+                                        </a>
+                                    </span>`;
                                 this.endnoteCounter++;
                             });
 
-                            html += `<div class="paragraph-text" style="font-size: 18px; font-weight: bold;">${paragraphText}</div>`;
-                            html += `<div class="paragraph-text-he" style="font-size: 17px;">${paragraphTextHe}</div>`;
+
+                            html += `<div class="paragraph-text">${paragraphText}</div>`;
+                            html += `<div class="paragraph-text-he">${paragraphTextHe}</div>`;
                             html += `<hr>`;
 
                             // פירושים מקומיים תחת הפיסקה
@@ -275,18 +417,13 @@
                                 commentaries.forEach((commentary) => {
                                     const commentaryText = commentary.he || commentary.text || 'אין טקסט זמין';
                                     const source = commentary.sourceHeRef || commentary.sourceRef || 'מקור לא ידוע';
-                                    const link = `https://www.sefaria.org/${encodeURIComponent(commentary.ref || ref)}`;
 
                                     html += `
-                                        <div class="inline-commentary">
-                                            <div class="inline-commentary-header">
-                                                <span class="inline-commentary-number">
-                                                    <a name="endnote_${commentaryCounter}"></a>
-                                                    <a href="#endnote_ref_${commentaryCounter}" class="endnote-back">${commentaryCounter}</a>
-                                                </span>
-                                                <span class="inline-commentary-title">${source}</span>
-                                            </div>
-                                            <div class="inline-commentary-text">${commentaryText}</div>
+                                        <div style="mso-element:footnote" id="ftn${commentaryCounter}">
+                                            <p class="MsoFootnoteText">
+                                                <a href="#ftnref${commentaryCounter}"><sup>${commentaryCounter}</sup></a>
+                                                ${commentaryText} <b>(${source})</b>
+                                            </p>
                                         </div>`;
                                     commentaryCounter++;
                                 });
