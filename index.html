@@ -265,8 +265,8 @@
                                 this.endnoteCounter++;
                             });
 
-                            html += `<div class="paragraph-text" style="font-size: 18px; font-weight: bold;">${paragraphText}</div>`;
-                            html += `<div class="paragraph-text-he" style="font-size: 17px;">${paragraphTextHe}</div>`;
+                            html += `<h1 class="paragraph-text" style="font-size: 18px; font-weight: bold;">${paragraphText}</h1>`;
+                            html += `<h2 class="paragraph-text-he" style="font-size: 17px;">${paragraphTextHe}</h2>`;
                             html += `<hr>`;
 
                             // פירושים מקומיים תחת הפיסקה
@@ -278,16 +278,16 @@
                                     const link = `https://www.sefaria.org/${encodeURIComponent(commentary.ref || ref)}`;
 
                                     html += `
-                                        <div class="inline-commentary">
-                                            <div class="inline-commentary-header">
+                                        <h3 class="inline-commentary">
+                                            <h4 class="inline-commentary-header">
                                                 <span class="inline-commentary-number">
                                                     <a name="endnote_${commentaryCounter}"></a>
                                                     <a href="#endnote_ref_${commentaryCounter}" class="endnote-back">${commentaryCounter}</a>
                                                 </span>
                                                 <span class="inline-commentary-title">${source}</span>
-                                            </div>
+                                            </h4>
                                             <div class="inline-commentary-text">${commentaryText}</div>
-                                        </div>`;
+                                        </h3>`;
                                     commentaryCounter++;
                                 });
                             }
