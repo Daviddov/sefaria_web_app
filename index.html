@@ -152,6 +152,99 @@
                 return mapCommentaries;
             }
 
+            toHebrewNumeral(num) {
+                let result = '';
+                let n = num;
+                for (const [val, letter] of [[400,'ת'],[300,'ש'],[200,'ר'],[100,'ק']]) {
+                    if (n >= val) { result += letter; n -= val; }
+                }
+                if (n === 15) { result += 'טו'; n = 0; }
+                else if (n === 16) { result += 'טז'; n = 0; }
+                else {
+                    for (const [val, letter] of [[90,'צ'],[80,'פ'],[70,'ע'],[60,'ס'],[50,'נ'],[40,'מ'],[30,'ל'],[20,'כ'],[10,'י']]) {
+                        if (n >= val) { result += letter; n -= val; }
+                    }
+                    for (const [val, letter] of [[9,'ט'],[8,'ח'],[7,'ז'],[6,'ו'],[5,'ה'],[4,'ד'],[3,'ג'],[2,'ב'],[1,'א']]) {
+                        if (n >= val) { result += letter; n -= val; }
+                    }
+                }
+                if (result.length === 1) return result + "'";
+                return result.slice(0, -1) + '"' + result.slice(-1);
+            }
+
+            formatDafLabel(dafLabel) {
+                const match = dafLabel.match(/^(\d+)([ab])$/);
+                if (!match) return dafLabel;
+                const heNum = this.toHebrewNumeral(parseInt(match[1]));
+                const heSide = match[2] === 'a' ? 'ע"א' : 'ע"ב';
+                return `${heNum} ${heSide}`;
+            }
+
+            getDafLabel(startingAddress, index) {
+                const match = startingAddress.match(/^(\d+)([ab])$/);
+                if (!match) return '';
+                const startNum = parseInt(match[1]);
+                const startSide = match[2] === 'a' ? 0 : 1;
+                const absolute = (startNum - 1) * 2 + startSide + index;
+                const dafNum = Math.floor(absolute / 2) + 1;
+                const side = absolute % 2 === 0 ? 'a' : 'b';
+                return `${dafNum}${side}`;
+            }
+
+            parseRefStart(rangeRef) {
+                const match = rangeRef.match(/\s(\d+):(\d+)/);
+                if (!match) return { chapter: 0, para: 0 };
+                return { chapter: parseInt(match[1]), para: parseInt(match[2]) };
+            }
+
+            buildDafBoundaries(sectionTitle) {
+                const dafStructure = this.bookData?.alt_structs?.Daf?.nodes;
+                if (!dafStructure) return [];
+
+                let dafNode = null;
+                for (const volumeNode of dafStructure) {
+                    for (const subNode of (volumeNode.nodes || [])) {
+                        const enTitle = (subNode.titles || []).find(t => t.lang === 'en' && t.primary)?.text;
+                        if (enTitle === sectionTitle) {
+                            if (subNode.nodeType === 'ArrayMapNode') {
+                                dafNode = subNode;
+                            } else {
+                                dafNode = (subNode.nodes || []).find(n => n.default) ||
+                                          (subNode.nodes || []).find(n => n.nodeType === 'ArrayMapNode');
+                            }
+                            break;
+                        }
+                    }
+                    if (dafNode) break;
+                }
+
+                if (!dafNode) return [];
+                const { refs, startingAddress } = dafNode;
+                return refs.map((ref, i) => ({
+                    start: this.parseRefStart(ref),
+                    dafLabel: this.getDafLabel(startingAddress, i)
+                }));
+            }
+
+            findDafForRef(paragraphRef, dafBoundaries) {
+                if (!dafBoundaries || dafBoundaries.length === 0) return null;
+                const match = paragraphRef.match(/\s(\d+):(\d+)/);
+                if (!match) return dafBoundaries[0];
+                const paraChapter = parseInt(match[1]);
+                const paraPara = parseInt(match[2]);
+
+                let current = dafBoundaries[0];
+                for (const boundary of dafBoundaries) {
+                    const { chapter, para } = boundary.start;
+                    if (paraChapter > chapter || (paraChapter === chapter && paraPara >= para)) {
+                        current = boundary;
+                    } else {
+                        break;
+                    }
+                }
+                return current;
+            }
+
             populateSectionSelect(currentBook) {
                 const select = document.getElementById('sectionSelect');
                 select.innerHTML = '<option value="">בחר פרק...</option>';
@@ -188,6 +281,9 @@
 
                     const unorderedCommentaries = await this.fetchCommentaries(chapterRef);
                     book.chapters.commentaries = this.orderCommentaries(unorderedCommentaries);
+
+                    book.dafBoundaries = this.buildDafBoundaries(book.currentSectionTitle);
+                    this.log('📄 Daf boundaries built:', book.dafBoundaries.length, 'dafs');
 
                     this.book = book;
                     this.showStatus('פרק נטען בהצלחה!', 'success');
@@ -228,6 +324,9 @@
                     html += `<div class="main-title">${title}</div>`;
 
                     // עיבוד כל פרק
+                    let currentDaf = null;
+                    const sefariaSectionBase = ('Zohar, ' + book.currentSectionTitle).replace(/ /g, '_');
+
                     for (let i = 0; i < book.chapters.refs.length; i++) {
                         let chapterRefs = book.chapters.refs[i];
 
@@ -244,6 +343,19 @@
                             // בדיקה אם יש תוכן
                             if (!hebrewText && !aramicText && !altText) {
                                 continue;
+                            }
+
+                            // הוספת כותרת דף וילנא כשמשתנה הדף
+                            const dafBoundary = this.findDafForRef(ref, book.dafBoundaries);
+                            if (dafBoundary && dafBoundary.dafLabel !== currentDaf) {
+                                currentDaf = dafBoundary.dafLabel;
+                                const dafUrl = `https://www.sefaria.org/${sefariaSectionBase}.${currentDaf}`;
+                                const dafDisplay = this.formatDafLabel(currentDaf);
+                                html += `<div style="text-align:center; margin:12px 0 4px; border-top:2px solid #8B6914; padding-top:6px;">
+                                    <a href="${dafUrl}" target="_blank" style="color:#8B6914; font-size:13px; font-weight:bold; text-decoration:none;">
+                                        ✦ דפוס וילנא — דף ${dafDisplay} ✦
+                                    </a>
+                                </div>`;
                             }
 
                             html += `<div class="paragraph-container">`;
