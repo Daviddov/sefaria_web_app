@@ -1,12 +1,13 @@
      body {
             font-family: 'Segoe UI', Arial, sans-serif;
             direction: rtl;
+            background-color: #f3f4f6;
             padding: 20px;
             min-height: 100vh;
             margin: 0;
         }
 
-        .container {
+        .zohar-container {
             max-width: 800px;
             margin: 0 auto;
             background: white;
@@ -20,7 +21,14 @@
             color: #4a5568;
             margin-bottom: 30px;
             font-size: 2.5em;
+            font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #4a5568;
+            font-size: 1.4em;
+            font-weight: bold;
         }
 
         .controls {
@@ -35,14 +43,14 @@
             margin-bottom: 15px;
         }
 
-        label {
+        .zohar-container label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
             color: #4a5568;
         }
 
-        select {
+        .zohar-container select {
             width: 100%;
             padding: 10px;
             border: 2px solid #e2e8f0;

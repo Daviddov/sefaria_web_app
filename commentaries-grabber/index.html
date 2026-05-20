@@ -5,6 +5,104 @@
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>חיפוש פירושים - ספריא</title>
+    <script>
+    // ---- Vilna daf labeling ----
+    const zoharDafBoundaries = {};
+
+    function parseRefStart(rangeRef) {
+        const m = rangeRef.match(/\s(\d+):(\d+)/);
+        return m ? { chapter: parseInt(m[1]), para: parseInt(m[2]) } : { chapter: 0, para: 0 };
+    }
+
+    function getDafLabel(startingAddress, index) {
+        const m = startingAddress.match(/^(\d+)([ab])$/);
+        if (!m) return '';
+        const absolute = (parseInt(m[1]) - 1) * 2 + (m[2] === 'a' ? 0 : 1) + index;
+        return `${Math.floor(absolute / 2) + 1}${absolute % 2 === 0 ? 'a' : 'b'}`;
+    }
+
+    function toHebrewNumeral(num) {
+        let result = '', n = num;
+        for (const [v, l] of [[400,'ת'],[300,'ש'],[200,'ר'],[100,'ק']]) { if (n >= v) { result += l; n -= v; } }
+        if (n === 15) { result += 'טו'; n = 0; }
+        else if (n === 16) { result += 'טז'; n = 0; }
+        else {
+            for (const [v, l] of [[90,'צ'],[80,'פ'],[70,'ע'],[60,'ס'],[50,'נ'],[40,'מ'],[30,'ל'],[20,'כ'],[10,'י']]) { if (n >= v) { result += l; n -= v; } }
+            for (const [v, l] of [[9,'ט'],[8,'ח'],[7,'ז'],[6,'ו'],[5,'ה'],[4,'ד'],[3,'ג'],[2,'ב'],[1,'א']]) { if (n >= v) { result += l; n -= v; } }
+        }
+        if (result.length === 1) return result + "'";
+        return result.slice(0, -1) + '"' + result.slice(-1);
+    }
+
+    function findZoharDaf(ref) {
+        const m = ref.match(/Zohar,\s+(.+?)\s+(\d+):(\d+)/);
+        if (!m) return null;
+        const [, section, ch, para] = m;
+        const chapter = parseInt(ch), paragraph = parseInt(para);
+        const boundaries = zoharDafBoundaries[section];
+        if (!boundaries || !boundaries.length) return null;
+
+        let current = boundaries[0];
+        for (const b of boundaries) {
+            if (chapter > b.start.chapter || (chapter === b.start.chapter && paragraph >= b.start.para)) current = b;
+            else break;
+        }
+        const dm = current.dafLabel.match(/^(\d+)([ab])$/);
+        if (!dm) return null;
+        return `דף ${toHebrewNumeral(parseInt(dm[1]))} ${dm[2] === 'a' ? 'ע"א' : 'ע"ב'}`;
+    }
+
+    async function loadZoharDafData() {
+        try {
+            const data = await fetch('https://www.sefaria.org/api/v2/raw/index/Zohar').then(r => r.json());
+            for (const volNode of (data?.alt_structs?.Daf?.nodes || [])) {
+                for (const subNode of (volNode.nodes || [])) {
+                    const enTitle = (subNode.titles || []).find(t => t.lang === 'en' && t.primary)?.text;
+                    if (!enTitle) continue;
+                    let dafNode = subNode.nodeType === 'ArrayMapNode' ? subNode
+                        : (subNode.nodes || []).find(n => n.default) || (subNode.nodes || [])[0];
+                    if (!dafNode?.refs) continue;
+                    zoharDafBoundaries[enTitle] = dafNode.refs.map((ref, i) => ({
+                        start: parseRefStart(ref),
+                        dafLabel: getDafLabel(dafNode.startingAddress, i)
+                    }));
+                }
+            }
+            processAllLinks();
+        } catch (e) { console.warn('Zohar daf data failed:', e); }
+    }
+
+    function processAllLinks() {
+        document.querySelectorAll('li').forEach(addDafToLink);
+    }
+
+    function addDafToLink(li) {
+        if (li.dataset.dafDone) return;
+        const anchor = li.querySelector('a[href*="sefaria.org/Zohar"]');
+        if (!anchor) return;
+        li.dataset.dafDone = '1';
+
+        const raw = anchor.getAttribute('href') || '';
+        const ref = decodeURIComponent(raw.replace('https://www.sefaria.org/', '').replace(/_/g, ' '));
+        const dafLabel = findZoharDaf(ref);
+        if (!dafLabel) return;
+
+        const refEl = anchor.querySelector('p');
+        if (refEl) {
+            const badge = document.createElement('span');
+            badge.textContent = dafLabel;
+            badge.style.cssText = 'color:#8B6914; font-weight:bold; font-size:12px; margin-right:6px;';
+            refEl.insertAdjacentElement('afterend', badge);
+        }
+    }
+
+    loadZoharDafData();
+
+    document.addEventListener('DOMContentLoaded', () => {
+        new MutationObserver(() => processAllLinks())
+            .observe(document.body, { childList: true, subtree: true });
+    });
+    </script>
     <script type="module" crossorigin src="assets/index-Dl3BwMNx.js"></script>
     <link rel="stylesheet" crossorigin href="assets/index-Deo8dShZ.css">
   </head>

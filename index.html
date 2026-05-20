@@ -5,11 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ספר הזוהר</title>
+<link rel="stylesheet" href="commentaries-grabber/assets/index-Deo8dShZ.css">
 <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <div class="container">
+    <div class="zohar-container">
         <h1>📜 ספר הזוהר</h1>
 
         <div style="text-align: center; margin-bottom: 20px;">
@@ -26,6 +27,11 @@
 
             <button class="generate-btn" id="generateBtn" disabled>📄 צור מסמך Word</button>
             <div id="status" class="status" style="display: none;"></div>
+        </div>
+
+        <div id="previewSection" style="display:none; margin-top: 24px;">
+            <h2 style="text-align:center; margin-bottom:16px;">תצוגה מקדימה</h2>
+            <div id="previewContent" style="max-height:70vh; overflow-y:auto; padding: 0 2px;"></div>
         </div>
     </div>
 
@@ -249,6 +255,96 @@
                 return current;
             }
 
+            renderPreview() {
+                const book = this.book;
+                const content = document.getElementById('previewContent');
+                const section = document.getElementById('previewSection');
+                content.innerHTML = '';
+                let currentDaf = null;
+
+                for (let i = 0; i < book.chapters.refs.length; i++) {
+                    const chapterRefs = book.chapters.refs[i];
+
+                    const chapterHeader = document.createElement('div');
+                    chapterHeader.className = 'text-gray-500 font-semibold text-sm my-4';
+                    chapterHeader.textContent = `פרק ${i + 1}`;
+                    content.appendChild(chapterHeader);
+
+                    for (let j = 0; j < chapterRefs.length; j++) {
+                        const ref = chapterRefs[j];
+                        const hebrewText = book.chapters.heText[i]?.[j] || '';
+                        const aramicText = book.chapters.text[i]?.[j] || '';
+                        const altText = book.chapters.alt[i]?.[j]?.he?.[0] || '';
+
+                        if (!hebrewText && !aramicText && !altText) continue;
+
+                        const dafBoundary = this.findDafForRef(ref, book.dafBoundaries);
+                        if (dafBoundary && dafBoundary.dafLabel !== currentDaf) {
+                            currentDaf = dafBoundary.dafLabel;
+                            const dafDisplay = this.formatDafLabel(currentDaf);
+                            const dafEl = document.createElement('div');
+                            dafEl.className = 'text-center text-amber-500 font-bold my-4 py-2 border-t border-gray-200';
+                            dafEl.textContent = `✦ דפוס וילנא — דף ${dafDisplay} ✦`;
+                            content.appendChild(dafEl);
+                        }
+
+                        const card = document.createElement('div');
+                        card.className = 'bg-white rounded-md p-4 shadow-sm my-8';
+
+                        const verseBox = document.createElement('div');
+                        verseBox.className = 'bg-yellow-50 border border-yellow-300 p-4 rounded-md';
+
+                        if (altText) {
+                            const altEl = document.createElement('div');
+                            altEl.className = 'text-yellow-700 text-sm font-semibold pb-2';
+                            altEl.innerHTML = altText;
+                            verseBox.appendChild(altEl);
+                        }
+                        if (aramicText) {
+                            const aramicEl = document.createElement('p');
+                            aramicEl.className = 'font-siddur text-2xl/none text-blue-900';
+                            aramicEl.innerHTML = aramicText;
+                            verseBox.appendChild(aramicEl);
+                        }
+                        if (hebrewText) {
+                            const hebrewEl = document.createElement('p');
+                            hebrewEl.className = 'font-siddur text-lg/none text-blue-900 mt-3';
+                            hebrewEl.innerHTML = hebrewText;
+                            verseBox.appendChild(hebrewEl);
+                        }
+                        card.appendChild(verseBox);
+
+                        const commentaries = book.chapters.commentaries.get(ref) || [];
+                        if (commentaries.length > 0) {
+                            const commSection = document.createElement('div');
+                            commSection.className = 'space-y-4 mt-4';
+                            commentaries.forEach(commentary => {
+                                const source = commentary.sourceHeRef || commentary.sourceRef || '';
+                                const text = commentary.he || commentary.text || '';
+                                const commEl = document.createElement('div');
+                                commEl.className = 'pt-2 border-t border-gray-200';
+                                if (source) {
+                                    const sourceEl = document.createElement('div');
+                                    sourceEl.className = 'mekor';
+                                    sourceEl.textContent = source;
+                                    commEl.appendChild(sourceEl);
+                                }
+                                const textEl = document.createElement('p');
+                                textEl.className = 'font-siddur text-lg/none text-gray-900 mt-1';
+                                textEl.innerHTML = text;
+                                commEl.appendChild(textEl);
+                                commSection.appendChild(commEl);
+                            });
+                            card.appendChild(commSection);
+                        }
+
+                        content.appendChild(card);
+                    }
+                }
+
+                section.style.display = 'block';
+            }
+
             populateSectionSelect(currentBook) {
                 const select = document.getElementById('sectionSelect');
                 select.innerHTML = '<option value="">בחר פרק...</option>';
@@ -290,8 +386,9 @@
                     this.log('📄 Daf boundaries built:', book.dafBoundaries.length, 'dafs');
 
                     this.book = book;
+                    this.renderPreview();
                     this.showStatus('פרק נטען בהצלחה!', 'success');
-                    document.getElementById('generateBtn').disabled = false;    
+                    document.getElementById('generateBtn').disabled = false;
                 } catch (error) {
                     console.error('Error updating section:', error);
                     this.showError('שגיאה בעדכון הפרק: ' + error.message);
