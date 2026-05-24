@@ -41,8 +41,7 @@
       class="text-xs p-4 overflow-auto whitespace-pre bg-gray-100"
       >{{ link }}</pre
     > -->
-    <Loader v-if="loading" />
-    <ul v-else class="space-y-6 mt-6">
+    <ul class="space-y-6 mt-6">
       <li v-if="translation" class="bg-gray-50 font-bold p-2 relative border">
         <div class="bg-white px-4 rounded-full border absolute -top-3 right-4">
           תרגום
@@ -83,55 +82,19 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from "vue";
-import Loader from "./Loader.vue";
-
 const props = defineProps<{
   link: Link;
   index: number;
+  commentaries: Link[];
+  translation: string;
 }>();
 
 defineEmits(["delete"]);
-
-const loading = ref(false);
-const translation = ref("");
-const commentaries = ref<Link[]>([]);
 
 const shrinkParenthesis = (text: string | string[]) => {
   const str = Array.isArray(text) ? text.join('') : (text || '');
   return str.replace(/(\(.+?\))/g, '<span class="mekor">$1</span>');
 };
-
-const fetchCommentaries = async () => {
-  loading.value = true;
-
-  const options = { method: "GET", headers: { accept: "application/json" } };
-
-  const [translationResponse, commentariesResponse] = await Promise.all([
-    fetch(
-      `https://www.sefaria.org/api/v3/texts/${props.link.ref}?version=translation%7Call&fill_in_missing_segments=0&return_format=default`,
-      options
-    ),
-    fetch(
-      `https://www.sefaria.org/api/links/${props.link.ref}?with_text=1&with_sheet_links=0`,
-      options
-    ),
-  ]);
-
-  const [translationJson, commentariesJson] = await Promise.all([
-    translationResponse.json(),
-    commentariesResponse.json(),
-  ]);
-
-  const rawTranslation = translationJson.versions.find((v: any) => v.language === "he")?.text;
-  translation.value = Array.isArray(rawTranslation) ? rawTranslation.join('') : (rawTranslation || "");
-  commentaries.value = commentariesJson.filter(
-    (link: Link) => link.category === "Commentary"
-  );
-  loading.value = false;
-};
-
-onMounted(fetchCommentaries);
 </script>
 
 <style>

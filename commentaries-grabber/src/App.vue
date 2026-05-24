@@ -60,6 +60,8 @@
           <LinkResult
             :index="i + 1"
             :link="link"
+            :commentaries="commentariesByRef[link.ref] ?? []"
+            :translation="translationByRef[link.ref] ?? ''"
             @delete="links = links.filter((l) => l._id !== link._id)"
           />
         </template>
@@ -81,6 +83,8 @@ const form = reactive({
 const loading = ref(false);
 const text = ref<string[]>([]);
 const links = ref<Link[]>([]);
+const commentariesByRef = ref<Record<string, Link[]>>({});
+const translationByRef = ref<Record<string, string>>({});
 let abortController: AbortController | null = null;
 const kabbalahLinks = computed(() => {
   return links.value
@@ -95,11 +99,52 @@ const kabbalahLinks = computed(() => {
         a.anchorVerse - b.anchorVerse || a.commentaryNum - b.commentaryNum
     );
 });
-// const linkCategories = computed(() => {
-//   return links.value
-//     .map((link) => link.category)
-//     .filter((value, index, self) => self.indexOf(value) === index);
-// });
+function getZoharSection(ref: string): string {
+  // עוצר לפני המספר הראשון (פרק) — עובד גם עם טווחים כמו "Zohar, Bamidbar 1:1-5"
+  const m = ref.match(/^(Zohar,\s+[^\d]+?)\s*\d/);
+  return m ? m[1].trim() : ref;
+}
+
+async function prefetchSectionData(zoharLinks: Link[], signal: AbortSignal) {
+  const sections = [...new Set(zoharLinks.map((l) => getZoharSection(l.ref)))];
+  const newCommentaries: Record<string, Link[]> = {};
+  const newTranslations: Record<string, string> = {};
+
+  await Promise.all(
+    sections.map(async (section) => {
+      try {
+        const opts = { headers: { accept: "application/json" }, signal };
+        const [linksRes, textRes] = await Promise.all([
+          fetch(`https://www.sefaria.org/api/links/${encodeURIComponent(section)}?with_text=1&with_sheet_links=0`, opts),
+          fetch(`https://www.sefaria.org/api/v3/texts/${encodeURIComponent(section)}?version=translation%7Call&fill_in_missing_segments=0&return_format=default`, opts),
+        ]);
+        const [sectionLinks, sectionText] = await Promise.all([linksRes.json(), textRes.json()]);
+
+        for (const link of sectionLinks) {
+          if (link.category !== "Commentary") continue;
+          (newCommentaries[link.anchorRef] ??= []).push(link);
+        }
+
+        const heVersion = sectionText.versions?.find((v: any) => v.language === "he");
+        const raw = heVersion?.text;
+        if (!raw) return;
+        const chapters: any[][] = Array.isArray(raw[0]) ? raw : [raw];
+        chapters.forEach((chapter, chIdx) => {
+          (Array.isArray(chapter) ? chapter : [chapter]).forEach((t: string, paraIdx) => {
+            if (t) newTranslations[`${section} ${chIdx + 1}:${paraIdx + 1}`] = t;
+          });
+        });
+      } catch (e) {
+        if ((e as Error).name !== "AbortError") console.error(e);
+      }
+    })
+  );
+
+  // לא להחיל תוצאות אם החיפוש בוטל בינתיים
+  if (signal.aborted) return;
+  commentariesByRef.value = newCommentaries;
+  translationByRef.value = newTranslations;
+}
 
 const submit = async () => {
   abortController?.abort();
@@ -108,6 +153,8 @@ const submit = async () => {
 
   links.value = [];
   text.value = [];
+  commentariesByRef.value = {};
+  translationByRef.value = {};
   loading.value = true;
 
   const options = { method: "GET", headers: { accept: "application/json" }, signal };
@@ -117,15 +164,13 @@ const submit = async () => {
       fetch(`https://www.sefaria.org/api/links/${form.ref}?with_text=1&with_sheet_links=0`, options),
       fetch(`https://www.sefaria.org/api/v3/texts/${form.ref}?version=hebrew&fill_in_missing_segments=0&return_format=default`, options),
     ]);
-
-    const [linksJson, textJson] = await Promise.all([
-      linksResponse.json(),
-      textResponse.json(),
-    ]);
+    const [linksJson, textJson] = await Promise.all([linksResponse.json(), textResponse.json()]);
 
     const rawText = textJson.versions[0]?.text;
     text.value = Array.isArray(rawText) ? rawText : [rawText];
     links.value = linksJson;
+
+    await prefetchSectionData(kabbalahLinks.value, signal);
   } catch (e) {
     if ((e as Error).name !== "AbortError") console.error(e);
   } finally {
