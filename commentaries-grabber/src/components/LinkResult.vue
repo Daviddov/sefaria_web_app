@@ -33,7 +33,7 @@
       <p class="text-sm text-gray-600">{{ link.sourceHeRef }}</p>
     </a>
     <p
-      v-html="shrinkParenthesis(link.he)"
+      v-html="shrinkParenthesis(originalText || link.he)"
       class="mt-4 text-2xl/none font-bold font-siddur"
     />
     <!-- <pre
@@ -87,6 +87,7 @@ const props = defineProps<{
   index: number;
   commentaries: Link[];
   translation: string;
+  originalText: string;
 }>();
 
 defineEmits(["delete"]);
