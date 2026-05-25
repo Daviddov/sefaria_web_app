@@ -142,7 +142,7 @@ const PARASHAS: { he: string; ref: string }[] = [
   { he: 'וְזֹאת הַבְּרָכָה', ref: 'Deuteronomy 33:1-34:12' },
 ];
 
-const SECTION_CACHE_VERSION = 'v2';
+const SECTION_CACHE_VERSION = 'v3';
 
 const form = reactive({ ref: "במדבר א" });
 const loading = ref(false);
@@ -229,10 +229,10 @@ async function prefetchSectionData(zoharLinks: Link[], signal: AbortSignal) {
         const opts = { headers: { accept: "application/json" }, signal };
         // קריאה אחת לשתי גרסאות: טקסט מקורי + תרגום עברי
         const origV = encodeURIComponent("hebrew|Vocalized Zohar, Israel 2013");
-        const transV = encodeURIComponent("translation|all");
+        const transV = encodeURIComponent("hebrew|Hebrew Translation");
         const [linksRes, textRes] = await Promise.all([
           fetch(`https://www.sefaria.org/api/links/${encodeURIComponent(section)}?with_text=1&with_sheet_links=0&category=Commentary`, opts),
-          fetch(`https://www.sefaria.org/api/v3/texts/${encodeURIComponent(section)}?version=${origV}&version=${transV}&fill_in_missing_segments=0&return_format=default`, opts),
+          fetch(`https://www.sefaria.org/api/v3/texts/${encodeURIComponent(section)}?version=${origV}&version=${transV}&fill_in_missing_segments=1&return_format=default`, opts),
         ]);
         const [sectionLinks, sectionText] = await Promise.all([linksRes.json(), textRes.json()]);
 
@@ -247,7 +247,7 @@ async function prefetchSectionData(zoharLinks: Link[], signal: AbortSignal) {
         const sectionTranslations: Record<string, string> = {};
         const versions: any[] = sectionText.versions ?? [];
         const origVersion = versions.find((v) => (v.versionTitle ?? "").includes("Vocalized Zohar")) ?? versions[0];
-        const transVersion = versions.find((v) => !(v.versionTitle ?? "").includes("Vocalized Zohar")) ?? versions[1];
+        const transVersion = versions.find((v) => (v.versionTitle ?? "") === "Hebrew Translation") ?? versions[1];
 
         const populateMap = (version: any, map: Record<string, string>) => {
           const raw = version?.text;
