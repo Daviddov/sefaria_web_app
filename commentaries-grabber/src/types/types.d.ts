@@ -9,7 +9,6 @@ interface Link {
   anchorRefExpanded: string[];
   sourceRef: string;
   sourceHeRef: string;
-  anchorVerse: string;
   compDate: number[];
   collectiveTitle: { he: string; en: string };
   commentaryNum: number;
