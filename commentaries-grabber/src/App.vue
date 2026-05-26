@@ -142,7 +142,10 @@ const PARASHAS: { he: string; ref: string }[] = [
   { he: 'וְזֹאת הַבְּרָכָה', ref: 'Deuteronomy 33:1-34:12' },
 ];
 
-const SECTION_CACHE_VERSION = 'v5';
+const SECTION_CACHE_VERSION = 'v6';
+
+/** מגביל בקשות מקבילות ל־Sefaria כדי למנוע timeouts (504) ועומס */
+const SEFARIA_FETCH_CONCURRENCY = 4;
 
 const form = reactive({ ref: "במדבר א" });
 const loading = ref(false);
@@ -200,13 +203,39 @@ function getParashaChapters(ref: string): string[] {
   return [ref];
 }
 
+/** מאזן עומס: מריצה את fn על כל פריט בסדר עם לכל היותר `concurrency` טאסקים במקביל */
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+  signal: AbortSignal
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  if (items.length === 0) return results;
+  const workers = Math.min(Math.max(1, concurrency), items.length);
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < items.length) {
+      if (signal.aborted) return;
+      const index = cursor++;
+      results[index] = await fn(items[index], index);
+    }
+  }
+
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return results;
+}
+
 async function prefetchSectionData(zoharLinks: Link[], signal: AbortSignal) {
   const uniqueRefs = [...new Set(zoharLinks.map(l => l.ref))];
   const newCommentaries: Record<string, Link[]> = {};
   const newTranslations: Record<string, string> = {};
 
-  await Promise.all(
-    uniqueRefs.map(async (ref) => {
+  await mapWithConcurrency(
+    uniqueRefs,
+    SEFARIA_FETCH_CONCURRENCY,
+    async (ref) => {
       const cacheCommentaryKey = `sefaria_${SECTION_CACHE_VERSION}_ref_${ref}`;
       const cacheTranslationKey = `sefaria_${SECTION_CACHE_VERSION}_tr_${ref}`;
 
@@ -273,11 +302,13 @@ async function prefetchSectionData(zoharLinks: Link[], signal: AbortSignal) {
         if ((e as Error).name !== "AbortError") console.error(e);
       }
 
-      // התאמה ל-LinkResult שמצפה ל-commentaries לפי ref של הציטוט בזוהר (kabbalahLinks[].ref), לא לפי anchorRef של כל פריט Commentary — שיכול להיות רצף למשל «Zohar, Bamidbar 1:1-2»
       const list = commentaryLinks ?? [];
       (newCommentaries[ref] ??= []).push(...list);
       if (translationText !== null) newTranslations[ref] = translationText;
-    })
+
+      return ref;
+    },
+    signal
   );
 
   if (signal.aborted) return;
@@ -305,11 +336,12 @@ const submit = async () => {
 
   try {
     const [allLinksArrays, textJson] = await Promise.all([
-      Promise.all(
-        chapterRefs.map((ch) =>
-          fetch(`https://www.sefaria.org/api/links/${encodeURIComponent(ch)}?with_text=1&with_sheet_links=0&category=Kabbalah`, options)
-            .then((r) => r.json())
-        )
+      mapWithConcurrency(
+        chapterRefs,
+        SEFARIA_FETCH_CONCURRENCY,
+        (ch) =>
+          fetch(`https://www.sefaria.org/api/links/${encodeURIComponent(ch)}?with_text=1&with_sheet_links=0&category=Kabbalah`, options).then((r) => r.json()),
+        signal
       ),
       fetch(`https://www.sefaria.org/api/v3/texts/${encodeURIComponent(textRef)}?version=hebrew&fill_in_missing_segments=0&return_format=default`, options)
         .then((r) => r.json()),
@@ -336,28 +368,40 @@ const submit = async () => {
 
     // Fallback: fetch text individually for Zohar links where link.he was not returned by the API
     if (!signal.aborted) {
-      const emptyHeLinks = kabbalahLinks.value.filter(l => !l.he);
-      if (emptyHeLinks.length) {
+      const emptyRefs = [...new Set(kabbalahLinks.value.filter(l => !l.he).map((l) => l.ref))];
+      if (emptyRefs.length) {
         const newOriginals: Record<string, string> = {};
-        await Promise.all(emptyHeLinks.map(async (link) => {
-          const cacheKey = `sefaria_${SECTION_CACHE_VERSION}_text_${link.ref}`;
-          const cached = sessionStorage.getItem(cacheKey);
-          if (cached) { newOriginals[link.ref] = cached; return; }
-          try {
-            const data = await fetch(
-              `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(link.ref)}?version=primary&fill_in_missing_segments=0&return_format=default`,
-              { headers: { accept: "application/json" }, signal }
-            ).then(r => r.json());
-            const ver = (data.versions ?? []).find((v: any) => v.language === 'he' || v.language === 'arc')
-                        ?? (data.versions ?? [])[0];
-            if (ver?.text) {
-              const t = Array.isArray(ver.text) ? (ver.text as string[]).join('') : String(ver.text);
-              if (t) { newOriginals[link.ref] = t; try { sessionStorage.setItem(cacheKey, t); } catch {} }
+        await mapWithConcurrency(
+          emptyRefs,
+          SEFARIA_FETCH_CONCURRENCY,
+          async (ref) => {
+            const cacheKey = `sefaria_${SECTION_CACHE_VERSION}_text_${ref}`;
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached) {
+              newOriginals[ref] = cached;
+              return ref;
             }
-          } catch (e) {
-            if ((e as Error).name !== 'AbortError') console.error(e);
-          }
-        }));
+            try {
+              const data = await fetch(
+                `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(ref)}?version=primary&fill_in_missing_segments=0&return_format=default`,
+                { headers: { accept: "application/json" }, signal }
+              ).then(r => r.json());
+              const ver = (data.versions ?? []).find((v: { language?: string }) => v.language === 'he' || v.language === 'arc')
+                ?? (data.versions ?? [])[0] as { text?: unknown } | undefined;
+              if (ver?.text) {
+                const t = Array.isArray(ver.text) ? (ver.text as string[]).join('') : String(ver.text);
+                if (t) {
+                  newOriginals[ref] = t;
+                  try { sessionStorage.setItem(cacheKey, t); } catch {}
+                }
+              }
+            } catch (e) {
+              if ((e as Error).name !== 'AbortError') console.error(e);
+            }
+            return ref;
+          },
+          signal
+        );
         if (!signal.aborted) originalByRef.value = newOriginals;
       }
     }
