@@ -30,11 +30,32 @@
           <Loader v-else />
         </button>
       </form>
+      <div v-if="loading" class="rounded border border-amber-200 bg-amber-50/90 px-3 py-2.5 space-y-2 shadow-sm">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <p class="text-sm font-medium text-gray-900 leading-snug flex-1 min-w-0 break-words order-2 sm:order-1" dir="auto">
+            {{ progressLabel }}
+          </p>
+          <span class="shrink-0 text-sm tabular-nums font-semibold text-amber-800 order-1 sm:order-2">{{ progressPercentRounded }}%</span>
+        </div>
+        <div
+          class="h-2.5 rounded-full bg-amber-100 overflow-hidden ring-1 ring-amber-200/80"
+          role="progressbar"
+          :aria-valuenow="progressPercentRounded"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          :aria-label="progressLabel"
+        >
+          <div
+            class="h-full rounded-full bg-amber-600 transition-[width] duration-200 ease-out"
+            :style="{ width: `${progressPercent}%` }"
+          />
+        </div>
+      </div>
     </div>
 
     <section v-if="kabbalahLinks.length" class="my-8">
-      <nav class="flex items-center">
-        <p class="text-gray-500 me-4">{{ kabbalahLinks.length }} תוצאות</p>
+      <nav class="flex flex-wrap items-center gap-2 gap-y-2">
+        <p class="text-gray-500 me-2">{{ kabbalahLinks.length }} תוצאות</p>
         <button
           class="bg-gray-500 text-white px-3 flex items-center py-1"
           @click="copyAll"
@@ -52,6 +73,20 @@
             </g>
           </svg>
           <span>העתק הכל</span>
+        </button>
+        <button
+          type="button"
+          :disabled="loading"
+          class="bg-blue-800 hover:bg-blue-900 disabled:opacity-50 text-white px-3 flex items-center py-1"
+          @click="exportResultsToWord"
+        >
+          <svg class="w-5 me-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="8" y1="13" x2="16" y2="13" />
+            <line x1="8" y1="17" x2="14" y2="17" />
+          </svg>
+          <span>ייצא ל־Word</span>
         </button>
       </nav>
       <ul id="results" class="space-y-8 mt-6">
@@ -145,10 +180,21 @@ const PARASHAS: { he: string; ref: string }[] = [
 const SECTION_CACHE_VERSION = 'v6';
 
 /** מגביל בקשות מקבילות ל־Sefaria כדי למנוע timeouts (504) ועומס */
-const SEFARIA_FETCH_CONCURRENCY = 4;
+const SEFARIA_FETCH_CONCURRENCY = 6;
+
+/** משקלי שלב טעינה (סוכמים ל־100) */
+const PROGRESS_W = {
+  kabbalahChapters: 26,
+  verseText: 14,
+  zoharPrefetch: 55,
+  originalFallback: 5,
+};
 
 const form = reactive({ ref: "במדבר א" });
 const loading = ref(false);
+const progressPercent = ref(0);
+const progressLabel = ref("");
+const progressPercentRounded = computed(() => Math.min(100, Math.round(progressPercent.value)));
 const textByRef = ref<Record<string, string>>({});
 const links = ref<Link[]>([]);
 const commentariesByRef = ref<Record<string, Link[]>>({});
@@ -208,7 +254,8 @@ async function mapWithConcurrency<T, R>(
   items: readonly T[],
   concurrency: number,
   fn: (item: T, index: number) => Promise<R>,
-  signal: AbortSignal
+  signal: AbortSignal,
+  onEachDone?: () => void
 ): Promise<R[]> {
   const results = new Array<R>(items.length);
   if (items.length === 0) return results;
@@ -220,6 +267,7 @@ async function mapWithConcurrency<T, R>(
       if (signal.aborted) return;
       const index = cursor++;
       results[index] = await fn(items[index], index);
+      onEachDone?.();
     }
   }
 
@@ -227,7 +275,11 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-async function prefetchSectionData(zoharLinks: Link[], signal: AbortSignal) {
+async function prefetchSectionData(
+  zoharLinks: Link[],
+  signal: AbortSignal,
+  onEachRefDone?: () => void
+) {
   const uniqueRefs = [...new Set(zoharLinks.map(l => l.ref))];
   const newCommentaries: Record<string, Link[]> = {};
   const newTranslations: Record<string, string> = {};
@@ -308,7 +360,8 @@ async function prefetchSectionData(zoharLinks: Link[], signal: AbortSignal) {
 
       return ref;
     },
-    signal
+    signal,
+    onEachRefDone
   );
 
   if (signal.aborted) return;
@@ -327,10 +380,13 @@ const submit = async () => {
   translationByRef.value = {};
   originalByRef.value = {};
   loading.value = true;
+  progressPercent.value = 0;
+  progressLabel.value = "טוען קישורי זוהר לכל פרק וטקסט התורה...";
 
   const options = { method: "GET", headers: { accept: "application/json" }, signal };
   // לינקים: פרק נפרד; with_text מחזיר את טקסט הזוהר בכל קישור (נדרש לתצוגה)
   const chapterRefs = getParashaChapters(form.ref);
+  const chapterBump = PROGRESS_W.kabbalahChapters / Math.max(1, chapterRefs.length);
   // טקסטים: טווח פרקים (texts API תומך בפורמט זה)
   const textRef = toChapterRange(form.ref);
 
@@ -341,10 +397,19 @@ const submit = async () => {
         SEFARIA_FETCH_CONCURRENCY,
         (ch) =>
           fetch(`https://www.sefaria.org/api/links/${encodeURIComponent(ch)}?with_text=1&with_sheet_links=0&category=Kabbalah`, options).then((r) => r.json()),
-        signal
+        signal,
+        () => {
+          progressPercent.value = Math.min(99, progressPercent.value + chapterBump);
+        }
       ),
-      fetch(`https://www.sefaria.org/api/v3/texts/${encodeURIComponent(textRef)}?version=hebrew&fill_in_missing_segments=0&return_format=default`, options)
-        .then((r) => r.json()),
+      (async () => {
+        const j = await fetch(
+          `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(textRef)}?version=hebrew&fill_in_missing_segments=0&return_format=default`,
+          options
+        ).then((r) => r.json());
+        progressPercent.value = Math.min(99, progressPercent.value + PROGRESS_W.verseText);
+        return j;
+      })(),
     ]);
 
     const rawText = textJson.versions?.[0]?.text;
@@ -364,12 +429,26 @@ const submit = async () => {
     }
 
     links.value = (allLinksArrays as Link[][]).flat();
-    await prefetchSectionData(kabbalahLinks.value, signal);
+
+    const zohUnique = [...new Set(kabbalahLinks.value.map((l) => l.ref))];
+    if (zohUnique.length === 0) {
+      progressPercent.value = Math.min(99, progressPercent.value + PROGRESS_W.zoharPrefetch);
+    } else {
+      progressLabel.value = `טוען פירושים ותרגומים לזוהר (${zohUnique.length})…`;
+      const zBump = PROGRESS_W.zoharPrefetch / zohUnique.length;
+      await prefetchSectionData(kabbalahLinks.value, signal, () => {
+        progressPercent.value = Math.min(99, progressPercent.value + zBump);
+      });
+    }
 
     // Fallback: fetch text individually for Zohar links where link.he was not returned by the API
     if (!signal.aborted) {
-      const emptyRefs = [...new Set(kabbalahLinks.value.filter(l => !l.he).map((l) => l.ref))];
-      if (emptyRefs.length) {
+      const emptyRefs = [...new Set(kabbalahLinks.value.filter((l) => !l.he).map((l) => l.ref))];
+      if (emptyRefs.length === 0) {
+        progressPercent.value = Math.min(99, progressPercent.value + PROGRESS_W.originalFallback);
+      } else {
+        progressLabel.value = `טוען טקסט מקורי לזהר החסר (${emptyRefs.length})…`;
+        const oBump = PROGRESS_W.originalFallback / emptyRefs.length;
         const newOriginals: Record<string, string> = {};
         await mapWithConcurrency(
           emptyRefs,
@@ -385,29 +464,41 @@ const submit = async () => {
               const data = await fetch(
                 `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(ref)}?version=primary&fill_in_missing_segments=0&return_format=default`,
                 { headers: { accept: "application/json" }, signal }
-              ).then(r => r.json());
-              const ver = (data.versions ?? []).find((v: { language?: string }) => v.language === 'he' || v.language === 'arc')
+              ).then((r) => r.json());
+              const ver = (data.versions ?? []).find((v: { language?: string }) => v.language === "he" || v.language === "arc")
                 ?? (data.versions ?? [])[0] as { text?: unknown } | undefined;
               if (ver?.text) {
-                const t = Array.isArray(ver.text) ? (ver.text as string[]).join('') : String(ver.text);
+                const t = Array.isArray(ver.text) ? (ver.text as string[]).join("") : String(ver.text);
                 if (t) {
                   newOriginals[ref] = t;
-                  try { sessionStorage.setItem(cacheKey, t); } catch {}
+                  try {
+                    sessionStorage.setItem(cacheKey, t);
+                  } catch {}
                 }
               }
             } catch (e) {
-              if ((e as Error).name !== 'AbortError') console.error(e);
+              if ((e as Error).name !== "AbortError") console.error(e);
             }
             return ref;
           },
-          signal
+          signal,
+          () => {
+            progressPercent.value = Math.min(99, progressPercent.value + oBump);
+          }
         );
         if (!signal.aborted) originalByRef.value = newOriginals;
       }
     }
+
+    progressLabel.value = "סיים";
   } catch (e) {
-    if ((e as Error).name !== "AbortError") console.error(e);
+    const name = (e as Error)?.name;
+    if (name !== "AbortError") {
+      console.error(e);
+      progressLabel.value = "שגיאה בטעינה";
+    }
   } finally {
+    progressPercent.value = 100;
     loading.value = false;
   }
 };
@@ -444,6 +535,130 @@ const copyAll = () => {
   window.getSelection()!.addRange(range);
   document.execCommand("copy");
 };
+
+function stripHtmlToText(raw: string): string {
+  if (!raw) return "";
+  try {
+    const el = document.createElement("textarea");
+    el.innerHTML = raw;
+    return (el.value || "").replace(/\r\n/g, "\n").trim();
+  } catch {
+    return raw.replace(/<[^>]*>/g, "").trim();
+  }
+}
+
+function asPlainSegment(text: string | string[] | undefined): string {
+  if (text == null) return "";
+  const joined = Array.isArray(text) ? text.join("") : String(text);
+  return stripHtmlToText(joined).replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** פסקאות ל־Word — בלוקים מופרדים בשורה ריקה, שבירת שורה פנימית ב־&lt;br&gt; */
+function formatWordBlocks(plain: string): string {
+  return plain
+    .split(/\n\n+/)
+    .map((block) => `<p style="margin:6pt 0;line-height:1.35">${escapeHtml(block).replace(/\n/g, "<br/>")}</p>`)
+    .join("");
+}
+
+function safeExportFilenameBase(raw: string): string {
+  const s = raw.slice(0, 96).replace(/[/\\?%*:|"<>#\s]+/g, "_").replace(/^_+|_+$/g, "");
+  return s || "export";
+}
+
+function exportResultsToWord() {
+  const list = kabbalahLinks.value;
+  if (!list.length) return;
+
+  const parts: string[] = [];
+  parts.push(`<h1 style="font-size:18pt;margin:0 0 12pt 0">${escapeHtml("חיפוש פירושים — ספריא")}</h1>`);
+  parts.push(`<p style="margin:4pt 0"><strong>מקור:</strong> ${escapeHtml(form.ref)}</p>`);
+  parts.push(
+    `<p style="margin:4pt 0"><strong>תאריך:</strong> ${escapeHtml(
+      new Date().toLocaleString("he-IL", { hour12: false })
+    )}</p>`
+  );
+  parts.push('<p style="border-bottom:1px solid #ccc;margin:12pt 0">&nbsp;</p>');
+
+  list.forEach((link, i) => {
+    if (i === 0 || link.anchorRef !== list[i - 1].anchorRef) {
+      const verseLabel = hebrewRef(link.anchorRef);
+      const verseText = asPlainSegment(textByRef.value[baseRef(link.anchorRef)]);
+      parts.push(
+        `<h2 style="font-size:15pt;color:#92400e;margin:16pt 0 8pt 0">${escapeHtml("★ פסוק " + verseLabel)}</h2>`
+      );
+      parts.push(
+        formatWordBlocks(verseText || "(אין טקסט פרק בספר הנוכחי)")
+      );
+    }
+
+    parts.push(
+      `<h3 style="font-size:13pt;margin:14pt 0 6pt 0">${i + 1}. ${escapeHtml(link.collectiveTitle.he)} — ${escapeHtml(link.sourceHeRef)}</h3>`
+    );
+
+    const sefariaHref = encodeURI(`https://www.sefaria.org/${link.ref}`);
+    parts.push(`<p style="margin:2pt 0;font-size:10pt"><a href="${sefariaHref}">${escapeHtml(`https://www.sefaria.org/${link.ref}`)}</a></p>`);
+
+    const zoharBody = asPlainSegment(originalByRef.value[link.ref] || link.he);
+    if (zoharBody) {
+      parts.push(`<div dir="rtl" style="font-size:13pt;font-weight:bold">${formatWordBlocks(zoharBody)}</div>`);
+    }
+
+    const tr = translationByRef.value[link.ref];
+    if (tr && asPlainSegment(tr)) {
+      parts.push(`<p style="margin-top:10pt;margin-bottom:4pt"><strong>${escapeHtml("תרגום")}</strong></p>`);
+      parts.push(formatWordBlocks(asPlainSegment(tr)));
+    }
+
+    const coms = commentariesByRef.value[link.ref] ?? [];
+    for (const c of coms) {
+      parts.push(
+        `<p style="margin-top:12pt;margin-bottom:4pt;color:#1e3a8a"><strong>${escapeHtml(c.collectiveTitle.he)}</strong> · ${escapeHtml(c.sourceHeRef)}</p>`
+      );
+      const body = asPlainSegment(c.he);
+      if (body) parts.push(`<div dir="rtl" style="font-size:11pt">${formatWordBlocks(body)}</div>`);
+    }
+
+    parts.push('<p style="border-bottom:1px solid #eee;margin:14pt 0">&nbsp;</p>');
+  });
+
+  const titleSafe = escapeHtml(form.ref.slice(0, 120));
+  const htmlDoc = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="ProgId" content="Word.Document">
+  <meta name="Generator" content="ספריא / commentaries-grabber">
+  <title>${titleSafe}</title>
+  <style>
+    body { font-family: 'Frank Ruhl Libre','David','Times New Roman',serif; direction: rtl; unicode-bidi: plaintext; margin: 1.2cm; }
+  </style>
+</head>
+<body dir="rtl">
+${parts.join("\n")}
+</body>
+</html>`;
+
+  const blob = new Blob(["\uFEFF" + htmlDoc], {
+    type: "application/msword",
+  });
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, "-");
+  const name = `${safeExportFilenameBase(form.ref)}_${stamp}.doc`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function hebrewRef(anchorRef: string): string {
   const m = anchorRef.match(/(\d+):(\d+)/);
