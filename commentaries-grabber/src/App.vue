@@ -142,7 +142,7 @@ const PARASHAS: { he: string; ref: string }[] = [
   { he: 'וְזֹאת הַבְּרָכָה', ref: 'Deuteronomy 33:1-34:12' },
 ];
 
-const SECTION_CACHE_VERSION = 'v4';
+const SECTION_CACHE_VERSION = 'v5';
 
 const form = reactive({ ref: "במדבר א" });
 const loading = ref(false);
@@ -182,11 +182,6 @@ function baseRef(anchorRef: string): string {
   return anchorRef.split("-")[0].trim();
 }
 
-function getZoharSection(ref: string): string {
-  const m = ref.match(/^([^\d]+?)\s*\d/);
-  return m ? m[1].trim() : ref;
-}
-
 // ממיר טווח צלב-פרק לטווח פרקים לצורך ה-texts API: "Numbers 4:21-7:89" → "Numbers 4-7"
 function toChapterRange(ref: string): string {
   const m = ref.match(/^([A-Za-z]+)\s+(\d+):\d+-(\d+):\d+$/);
@@ -206,105 +201,88 @@ function getParashaChapters(ref: string): string[] {
 }
 
 async function prefetchSectionData(zoharLinks: Link[], signal: AbortSignal) {
-  const sections = [...new Set(zoharLinks.map((l) => getZoharSection(l.ref)))];
+  const uniqueRefs = [...new Set(zoharLinks.map(l => l.ref))];
   const newCommentaries: Record<string, Link[]> = {};
   const newTranslations: Record<string, string> = {};
-  const newOriginals: Record<string, string> = {};
 
   await Promise.all(
-    sections.map(async (section) => {
-      const cacheKey = `sefaria_${SECTION_CACHE_VERSION}_${section}`;
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
+    uniqueRefs.map(async (ref) => {
+      const cacheCommentaryKey = `sefaria_${SECTION_CACHE_VERSION}_ref_${ref}`;
+      const cacheTranslationKey = `sefaria_${SECTION_CACHE_VERSION}_tr_${ref}`;
+
+      const cachedCommentaries = sessionStorage.getItem(cacheCommentaryKey);
+      let commentaryLinks: Link[] | null = null;
+      let translationText: string | null = null;
+
+      if (cachedCommentaries) {
         try {
-          const { commentaries, translations, originals } = JSON.parse(cached);
-          Object.assign(newCommentaries, commentaries);
-          Object.assign(newTranslations, translations);
-          Object.assign(newOriginals, originals ?? {});
-          return;
+          commentaryLinks = JSON.parse(cachedCommentaries) as Link[];
         } catch {}
       }
+      const translationFromCache = sessionStorage.getItem(cacheTranslationKey);
+      if (translationFromCache !== null) {
+        translationText = translationFromCache;
+      }
+
+      const opts = { headers: { accept: "application/json" }, signal };
 
       try {
-        const opts = { headers: { accept: "application/json" }, signal };
-        // קריאה אחת לשתי גרסאות: טקסט מקורי + תרגום עברי
-        const origV = encodeURIComponent("hebrew|Vocalized Zohar, Israel 2013");
-        const transV = encodeURIComponent("hebrew|Hebrew Translation");
-        const [linksRes, textRes] = await Promise.all([
-          fetch(`https://www.sefaria.org/api/links/${encodeURIComponent(section)}?with_text=1&with_sheet_links=0&category=Commentary`, opts),
-          fetch(`https://www.sefaria.org/api/v3/texts/${encodeURIComponent(section)}?version=${origV}&version=${transV}&fill_in_missing_segments=1&return_format=default`, opts),
-        ]);
-        const [sectionLinks, sectionText] = await Promise.all([linksRes.json(), textRes.json()]);
+        const tasks: Promise<void>[] = [];
 
-        const sectionCommentaries: Record<string, Link[]> = {};
-        for (const link of sectionLinks) {
-          if (link.category !== "Commentary") continue;
-          (sectionCommentaries[link.anchorRef] ??= []).push(link);
-          (newCommentaries[link.anchorRef] ??= []).push(link);
+        if (!commentaryLinks) {
+          tasks.push(
+            (async () => {
+              const refLinks: unknown = await fetch(
+                `https://www.sefaria.org/api/links/${encodeURIComponent(ref)}?with_text=1&with_sheet_links=0&category=Commentary`,
+                opts
+              ).then((r) => r.json());
+              if (!Array.isArray(refLinks)) return;
+              const filtered = refLinks.filter((l: unknown) => (l as { category?: string }).category === "Commentary") as Link[];
+              commentaryLinks = filtered;
+              try {
+                sessionStorage.setItem(cacheCommentaryKey, JSON.stringify(filtered));
+              } catch {}
+            })()
+          );
         }
 
-        const sectionOriginals: Record<string, string> = {};
-        const sectionTranslations: Record<string, string> = {};
-        const versions: any[] = sectionText.versions ?? [];
-        const origVersion = versions.find((v) => (v.versionTitle ?? "").includes("Vocalized Zohar")) ?? versions[0];
-        const transVersion = versions.find((v) => (v.versionTitle ?? "") === "Hebrew Translation") ?? versions[1];
-
-        const populateMap = (version: any, map: Record<string, string>) => {
-          const raw = version?.text;
-          if (!raw) return;
-          const chapters: any[][] = Array.isArray(raw[0]) ? raw : [raw];
-          chapters.forEach((chapter, chIdx) => {
-            (Array.isArray(chapter) ? chapter : [chapter]).forEach((t: string, paraIdx) => {
-              if (t) map[`${section} ${chIdx + 1}:${paraIdx + 1}`] = t;
-            });
-          });
-        };
-
-        populateMap(origVersion, sectionOriginals);
-        populateMap(transVersion, sectionTranslations);
-        Object.assign(newOriginals, sectionOriginals);
-        Object.assign(newTranslations, sectionTranslations);
-
-        try {
-          sessionStorage.setItem(
-            cacheKey,
-            JSON.stringify({ commentaries: sectionCommentaries, translations: sectionTranslations, originals: sectionOriginals })
+        if (translationText === null) {
+          tasks.push(
+            (async () => {
+              try {
+                const data = await fetch(
+                  `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(ref)}?version=translation%7Call&fill_in_missing_segments=0&return_format=default`,
+                  opts
+                ).then((r) => r.json());
+                const versions = data.versions as { language?: string; text?: unknown }[] | undefined;
+                const rawTr = versions?.find((v) => v.language === "he")?.text;
+                translationText =
+                  Array.isArray(rawTr) ? (rawTr as string[]).join("") : (typeof rawTr === "string" ? rawTr : "");
+                try {
+                  sessionStorage.setItem(cacheTranslationKey, translationText);
+                } catch {}
+              } catch (e) {
+                if ((e as Error).name !== "AbortError") console.error(e);
+              }
+            })()
           );
-        } catch {}
+        }
+
+        await Promise.all(tasks);
       } catch (e) {
         if ((e as Error).name !== "AbortError") console.error(e);
       }
+
+      // התאמה ל-LinkResult שמצפה ל-commentaries לפי ref של הציטוט בזוהר (kabbalahLinks[].ref), לא לפי anchorRef של כל פריט Commentary — שיכול להיות רצף למשל «Zohar, Bamidbar 1:1-2»
+      const list = commentaryLinks ?? [];
+      (newCommentaries[ref] ??= []).push(...list);
+      if (translationText !== null) newTranslations[ref] = translationText;
     })
   );
 
   if (signal.aborted) return;
-
-  // Fallback: refs still missing text after section fetch (e.g. incomplete version coverage)
-  const missingRefs = zoharLinks.filter(l => !newOriginals[l.ref]);
-  if (missingRefs.length) {
-    await Promise.all(missingRefs.map(async (link) => {
-      try {
-        const opts = { headers: { accept: "application/json" }, signal };
-        const res = await fetch(
-          `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(link.ref)}?version=primary&fill_in_missing_segments=0&return_format=default`,
-          opts
-        );
-        const data = await res.json();
-        const heVer = (data.versions ?? []).find((v: any) => v.language === 'he');
-        if (heVer?.text) {
-          const t = Array.isArray(heVer.text) ? heVer.text.join('') : String(heVer.text);
-          if (t) newOriginals[link.ref] = t;
-        }
-      } catch (e) {
-        if ((e as Error).name !== 'AbortError') console.error(e);
-      }
-    }));
-    if (signal.aborted) return;
-  }
-
   commentariesByRef.value = newCommentaries;
   translationByRef.value = newTranslations;
-  originalByRef.value = newOriginals;
 }
 
 const submit = async () => {
@@ -320,7 +298,7 @@ const submit = async () => {
   loading.value = true;
 
   const options = { method: "GET", headers: { accept: "application/json" }, signal };
-  // לינקים: קריאה נפרדת לכל פרק, ללא טקסט (חוסך ~80% bandwidth בקריאה הראשית)
+  // לינקים: פרק נפרד; with_text מחזיר את טקסט הזוהר בכל קישור (נדרש לתצוגה)
   const chapterRefs = getParashaChapters(form.ref);
   // טקסטים: טווח פרקים (texts API תומך בפורמט זה)
   const textRef = toChapterRange(form.ref);
@@ -329,7 +307,7 @@ const submit = async () => {
     const [allLinksArrays, textJson] = await Promise.all([
       Promise.all(
         chapterRefs.map((ch) =>
-          fetch(`https://www.sefaria.org/api/links/${encodeURIComponent(ch)}?with_text=0&with_sheet_links=0&category=Kabbalah`, options)
+          fetch(`https://www.sefaria.org/api/links/${encodeURIComponent(ch)}?with_text=1&with_sheet_links=0&category=Kabbalah`, options)
             .then((r) => r.json())
         )
       ),
@@ -355,6 +333,34 @@ const submit = async () => {
 
     links.value = (allLinksArrays as Link[][]).flat();
     await prefetchSectionData(kabbalahLinks.value, signal);
+
+    // Fallback: fetch text individually for Zohar links where link.he was not returned by the API
+    if (!signal.aborted) {
+      const emptyHeLinks = kabbalahLinks.value.filter(l => !l.he);
+      if (emptyHeLinks.length) {
+        const newOriginals: Record<string, string> = {};
+        await Promise.all(emptyHeLinks.map(async (link) => {
+          const cacheKey = `sefaria_${SECTION_CACHE_VERSION}_text_${link.ref}`;
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) { newOriginals[link.ref] = cached; return; }
+          try {
+            const data = await fetch(
+              `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(link.ref)}?version=primary&fill_in_missing_segments=0&return_format=default`,
+              { headers: { accept: "application/json" }, signal }
+            ).then(r => r.json());
+            const ver = (data.versions ?? []).find((v: any) => v.language === 'he' || v.language === 'arc')
+                        ?? (data.versions ?? [])[0];
+            if (ver?.text) {
+              const t = Array.isArray(ver.text) ? (ver.text as string[]).join('') : String(ver.text);
+              if (t) { newOriginals[link.ref] = t; try { sessionStorage.setItem(cacheKey, t); } catch {} }
+            }
+          } catch (e) {
+            if ((e as Error).name !== 'AbortError') console.error(e);
+          }
+        }));
+        if (!signal.aborted) originalByRef.value = newOriginals;
+      }
+    }
   } catch (e) {
     if ((e as Error).name !== "AbortError") console.error(e);
   } finally {
