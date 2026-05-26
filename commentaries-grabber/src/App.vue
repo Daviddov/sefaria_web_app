@@ -142,7 +142,7 @@ const PARASHAS: { he: string; ref: string }[] = [
   { he: 'וְזֹאת הַבְּרָכָה', ref: 'Deuteronomy 33:1-34:12' },
 ];
 
-const SECTION_CACHE_VERSION = 'v3';
+const SECTION_CACHE_VERSION = 'v4';
 
 const form = reactive({ ref: "במדבר א" });
 const loading = ref(false);
@@ -183,7 +183,7 @@ function baseRef(anchorRef: string): string {
 }
 
 function getZoharSection(ref: string): string {
-  const m = ref.match(/^(Zohar,\s+[^\d]+?)\s*\d/);
+  const m = ref.match(/^([^\d]+?)\s*\d/);
   return m ? m[1].trim() : ref;
 }
 
@@ -278,6 +278,30 @@ async function prefetchSectionData(zoharLinks: Link[], signal: AbortSignal) {
   );
 
   if (signal.aborted) return;
+
+  // Fallback: refs still missing text after section fetch (e.g. incomplete version coverage)
+  const missingRefs = zoharLinks.filter(l => !newOriginals[l.ref]);
+  if (missingRefs.length) {
+    await Promise.all(missingRefs.map(async (link) => {
+      try {
+        const opts = { headers: { accept: "application/json" }, signal };
+        const res = await fetch(
+          `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(link.ref)}?version=primary&fill_in_missing_segments=0&return_format=default`,
+          opts
+        );
+        const data = await res.json();
+        const heVer = (data.versions ?? []).find((v: any) => v.language === 'he');
+        if (heVer?.text) {
+          const t = Array.isArray(heVer.text) ? heVer.text.join('') : String(heVer.text);
+          if (t) newOriginals[link.ref] = t;
+        }
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') console.error(e);
+      }
+    }));
+    if (signal.aborted) return;
+  }
+
   commentariesByRef.value = newCommentaries;
   translationByRef.value = newTranslations;
   originalByRef.value = newOriginals;
