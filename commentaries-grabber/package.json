@@ -12,6 +12,7 @@
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
+    "docx": "^9.7.1",
     "vue": "^3.4.29"
   },
   "devDependencies": {

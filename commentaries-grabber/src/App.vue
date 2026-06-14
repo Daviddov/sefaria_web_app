@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <Layout>
     <div class="space-y-2">
       <div class="flex gap-2">
@@ -119,6 +119,7 @@ import { reactive, ref, computed } from "vue";
 import Layout from "./components/Layout.vue";
 import Loader from "./components/Loader.vue";
 import LinkResult from "./components/LinkResult.vue";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, FootnoteReferenceRun, AlignmentType, SectionType } from "docx";
 
 const PARASHAS: { he: string; ref: string }[] = [
   { he: 'בְּרֵאשִׁית', ref: 'Genesis 1:1-6:8' },
@@ -275,6 +276,21 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
+async function fetchWithRetry(url: string, opts: RequestInit): Promise<Response> {
+  try {
+    const resp = await fetch(url, opts);
+    if (resp.status >= 500) {
+      await new Promise<void>((res) => setTimeout(res, 800));
+      return fetch(url, opts);
+    }
+    return resp;
+  } catch (e) {
+    if ((e as Error).name === "AbortError") throw e;
+    await new Promise<void>((res) => setTimeout(res, 800));
+    return fetch(url, opts);
+  }
+}
+
 async function prefetchSectionData(
   zoharLinks: Link[],
   signal: AbortSignal,
@@ -313,7 +329,7 @@ async function prefetchSectionData(
         if (!commentaryLinks) {
           tasks.push(
             (async () => {
-              const refLinks: unknown = await fetch(
+              const refLinks: unknown = await fetchWithRetry(
                 `https://www.sefaria.org/api/links/${encodeURIComponent(ref)}?with_text=1&with_sheet_links=0&category=Commentary`,
                 opts
               ).then((r) => r.json());
@@ -331,7 +347,7 @@ async function prefetchSectionData(
           tasks.push(
             (async () => {
               try {
-                const data = await fetch(
+                const data = await fetchWithRetry(
                   `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(ref)}?version=translation%7Call&fill_in_missing_segments=0&return_format=default`,
                   opts
                 ).then((r) => r.json());
@@ -396,14 +412,14 @@ const submit = async () => {
         chapterRefs,
         SEFARIA_FETCH_CONCURRENCY,
         (ch) =>
-          fetch(`https://www.sefaria.org/api/links/${encodeURIComponent(ch)}?with_text=1&with_sheet_links=0&category=Kabbalah`, options).then((r) => r.json()),
+          fetchWithRetry(`https://www.sefaria.org/api/links/${encodeURIComponent(ch)}?with_text=1&with_sheet_links=0&category=Kabbalah`, options).then((r) => r.json()),
         signal,
         () => {
           progressPercent.value = Math.min(99, progressPercent.value + chapterBump);
         }
       ),
       (async () => {
-        const j = await fetch(
+        const j = await fetchWithRetry(
           `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(textRef)}?version=hebrew&fill_in_missing_segments=0&return_format=default`,
           options
         ).then((r) => r.json());
@@ -461,7 +477,7 @@ const submit = async () => {
               return ref;
             }
             try {
-              const data = await fetch(
+              const data = await fetchWithRetry(
                 `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(ref)}?version=primary&fill_in_missing_segments=0&return_format=default`,
                 { headers: { accept: "application/json" }, signal }
               ).then((r) => r.json());
@@ -539,9 +555,9 @@ const copyAll = () => {
 function stripHtmlToText(raw: string): string {
   if (!raw) return "";
   try {
-    const el = document.createElement("textarea");
+    const el = document.createElement("div");
     el.innerHTML = raw;
-    return (el.value || "").replace(/\r\n/g, "\n").trim();
+    return (el.textContent || "").replace(/\r\n/g, "\n").trim();
   } catch {
     return raw.replace(/<[^>]*>/g, "").trim();
   }
@@ -553,111 +569,126 @@ function asPlainSegment(text: string | string[] | undefined): string {
   return stripHtmlToText(joined).replace(/\n{3,}/g, "\n\n").trim();
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-/** פסקאות ל־Word — בלוקים מופרדים בשורה ריקה, שבירת שורה פנימית ב־&lt;br&gt; */
-function formatWordBlocks(plain: string): string {
-  return plain
-    .split(/\n\n+/)
-    .map((block) => `<p style="margin:6pt 0;line-height:1.35">${escapeHtml(block).replace(/\n/g, "<br/>")}</p>`)
-    .join("");
-}
 
 function safeExportFilenameBase(raw: string): string {
   const s = raw.slice(0, 96).replace(/[/\\?%*:|"<>#\s]+/g, "_").replace(/^_+|_+$/g, "");
   return s || "export";
 }
 
-function exportResultsToWord() {
+function textToRuns(text: string, bold = false): TextRun[] {
+  const runs: TextRun[] = [];
+  text.split("\n").forEach((line, idx) => {
+    if (idx > 0) runs.push(new TextRun({ break: 1 }));
+    if (line) runs.push(new TextRun({ text: line, bold, rightToLeft: true }));
+  });
+  return runs;
+}
+
+async function exportResultsToWord() {
   const list = kabbalahLinks.value;
   if (!list.length) return;
 
-  const parts: string[] = [];
-  parts.push(`<h1 style="font-size:18pt;margin:0 0 12pt 0">${escapeHtml("חיפוש פירושים — ספריא")}</h1>`);
-  parts.push(`<p style="margin:4pt 0"><strong>מקור:</strong> ${escapeHtml(form.ref)}</p>`);
-  parts.push(
-    `<p style="margin:4pt 0"><strong>תאריך:</strong> ${escapeHtml(
-      new Date().toLocaleString("he-IL", { hour12: false })
-    )}</p>`
-  );
-  parts.push('<p style="border-bottom:1px solid #ccc;margin:12pt 0">&nbsp;</p>');
+  const footnotes: Record<number, { children: Paragraph[] }> = {};
+  let fnId = 0;
+
+  function rtlPara(children: (TextRun | FootnoteReferenceRun)[], heading?: HeadingLevel): Paragraph {
+    return new Paragraph({
+      children,
+      ...(heading !== undefined ? { heading } : {}),
+      bidirectional: true,
+      alignment: AlignmentType.RIGHT,
+    });
+  }
+
+  const bodyChildren: Paragraph[] = [
+    rtlPara([new TextRun({ text: "חיפוש פירושים — ספריא", rightToLeft: true })], HeadingLevel.HEADING_1),
+    rtlPara([new TextRun({ text: "מקור: " + form.ref, rightToLeft: true })]),
+    rtlPara([new TextRun({ text: "תאריך: " + new Date().toLocaleString("he-IL", { hour12: false }), rightToLeft: true })]),
+    new Paragraph({ text: "" }),
+  ];
 
   list.forEach((link, i) => {
     if (i === 0 || link.anchorRef !== list[i - 1].anchorRef) {
       const verseLabel = hebrewRef(link.anchorRef);
       const verseText = asPlainSegment(textByRef.value[baseRef(link.anchorRef)]);
-      parts.push(
-        `<h2 style="font-size:15pt;color:#92400e;margin:16pt 0 8pt 0">${escapeHtml("★ פסוק " + verseLabel)}</h2>`
-      );
-      parts.push(
-        formatWordBlocks(verseText || "(אין טקסט פרק בספר הנוכחי)")
-      );
+      bodyChildren.push(rtlPara(
+        [new TextRun({ text: "★ פסוק " + verseLabel, rightToLeft: true })],
+        HeadingLevel.HEADING_2
+      ));
+      if (verseText) {
+        bodyChildren.push(rtlPara(textToRuns(verseText)));
+      }
     }
 
-    parts.push(
-      `<h3 style="font-size:13pt;margin:14pt 0 6pt 0">${i + 1}. ${escapeHtml(link.collectiveTitle.he)} — ${escapeHtml(link.sourceHeRef)}</h3>`
-    );
+    bodyChildren.push(rtlPara(
+      [new TextRun({ text: (i + 1) + ". " + link.collectiveTitle.he + " — " + link.sourceHeRef, rightToLeft: true })],
+      HeadingLevel.HEADING_3
+    ));
 
-    const sefariaHref = encodeURI(`https://www.sefaria.org/${link.ref}`);
-    parts.push(`<p style="margin:2pt 0;font-size:10pt"><a href="${sefariaHref}">${escapeHtml(`https://www.sefaria.org/${link.ref}`)}</a></p>`);
-
-    const zoharBody = asPlainSegment(originalByRef.value[link.ref] || link.he);
-    if (zoharBody) {
-      parts.push(`<div dir="rtl" style="font-size:13pt;font-weight:bold">${formatWordBlocks(zoharBody)}</div>`);
-    }
-
-    const tr = translationByRef.value[link.ref];
-    if (tr && asPlainSegment(tr)) {
-      parts.push(`<p style="margin-top:10pt;margin-bottom:4pt"><strong>${escapeHtml("תרגום")}</strong></p>`);
-      parts.push(formatWordBlocks(asPlainSegment(tr)));
-    }
-
+    const zoharText = asPlainSegment(originalByRef.value[link.ref] || link.he);
     const coms = commentariesByRef.value[link.ref] ?? [];
+    const zoharRuns: (TextRun | FootnoteReferenceRun)[] = textToRuns(zoharText, true);
+
     for (const c of coms) {
-      parts.push(
-        `<p style="margin-top:12pt;margin-bottom:4pt;color:#1e3a8a"><strong>${escapeHtml(c.collectiveTitle.he)}</strong> · ${escapeHtml(c.sourceHeRef)}</p>`
-      );
-      const body = asPlainSegment(c.he);
-      if (body) parts.push(`<div dir="rtl" style="font-size:11pt">${formatWordBlocks(body)}</div>`);
+      fnId++;
+      const comBody = asPlainSegment(c.he);
+      footnotes[fnId] = {
+        children: [
+          new Paragraph({
+            children: [
+              new TextRun({ text: c.collectiveTitle.he + " · " + c.sourceHeRef, bold: true, rightToLeft: true }),
+              ...(comBody ? [new TextRun({ break: 1 }), ...textToRuns(comBody)] : []),
+            ],
+            bidirectional: true,
+            alignment: AlignmentType.RIGHT,
+          }),
+        ],
+      };
+      zoharRuns.push(new FootnoteReferenceRun(fnId));
     }
 
-    parts.push('<p style="border-bottom:1px solid #eee;margin:14pt 0">&nbsp;</p>');
+    if (zoharRuns.length) {
+      bodyChildren.push(rtlPara(zoharRuns));
+    }
+
+    const tr = asPlainSegment(translationByRef.value[link.ref]);
+    if (tr) {
+      bodyChildren.push(rtlPara([
+        new TextRun({ text: "תרגום: ", bold: true, rightToLeft: true }),
+        ...textToRuns(tr),
+      ]));
+    }
   });
 
-  const titleSafe = escapeHtml(form.ref.slice(0, 120));
-  const htmlDoc = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" lang="he" dir="rtl">
-<head>
-  <meta charset="utf-8" />
-  <meta name="ProgId" content="Word.Document">
-  <meta name="Generator" content="ספריא / commentaries-grabber">
-  <title>${titleSafe}</title>
-  <style>
-    body { font-family: 'Frank Ruhl Libre','David','Times New Roman',serif; direction: rtl; unicode-bidi: plaintext; margin: 1.2cm; }
-  </style>
-</head>
-<body dir="rtl">
-${parts.join("\n")}
-</body>
-</html>`;
-
-  const blob = new Blob(["\uFEFF" + htmlDoc], {
-    type: "application/msword",
-  });
-  const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, "-");
-  const name = `${safeExportFilenameBase(form.ref)}_${stamp}.doc`;
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
+  try {
+    const doc = new Document({
+      footnotes,
+      styles: {
+        default: {
+          document: {
+            run: { language: { bidi: "he-IL" } },
+            paragraph: { bidirectional: true, alignment: AlignmentType.RIGHT },
+          },
+        },
+      },
+      sections: [{
+        properties: { bidi: true, type: SectionType.CONTINUOUS },
+        children: bodyChildren,
+      }],
+    });
+    const blob = await Packer.toBlob(doc);
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, "-");
+    const name = safeExportFilenameBase(form.ref) + "_" + stamp + ".docx";
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error("exportResultsToWord failed:", e);
+    alert("שגיאה ביצוא: " + (e instanceof Error ? e.message : String(e)));
+  }
 }
 
 function hebrewRef(anchorRef: string): string {
