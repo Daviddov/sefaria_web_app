@@ -119,7 +119,7 @@ import { reactive, ref, computed } from "vue";
 import Layout from "./components/Layout.vue";
 import Loader from "./components/Loader.vue";
 import LinkResult from "./components/LinkResult.vue";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, FootnoteReferenceRun, AlignmentType, SectionType } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, FootnoteReferenceRun, AlignmentType, SectionType, ExternalHyperlink } from "docx";
 
 const PARASHAS: { he: string; ref: string }[] = [
   { he: 'בְּרֵאשִׁית', ref: 'Genesis 1:1-6:8' },
@@ -620,10 +620,16 @@ async function exportResultsToWord() {
       }
     }
 
-    bodyChildren.push(rtlPara(
-      [new TextRun({ text: (i + 1) + ". " + link.collectiveTitle.he + " — " + link.sourceHeRef, rightToLeft: true })],
-      HeadingLevel.HEADING_3
-    ));
+    const sefariaUrl = "https://www.sefaria.org/" + encodeURIComponent(link.ref).replace(/%20/g, "_");
+    bodyChildren.push(new Paragraph({
+      heading: HeadingLevel.HEADING_3,
+      bidirectional: true,
+      alignment: AlignmentType.RIGHT,
+      children: [new ExternalHyperlink({
+        link: sefariaUrl,
+        children: [new TextRun({ text: (i + 1) + ". " + link.collectiveTitle.he + " — " + link.sourceHeRef, rightToLeft: true, style: "Hyperlink" })],
+      })],
+    }));
 
     const zoharText = asPlainSegment(originalByRef.value[link.ref] || link.he);
     const coms = commentariesByRef.value[link.ref] ?? [];
@@ -669,6 +675,9 @@ async function exportResultsToWord() {
             run: { language: { bidi: "he-IL" } },
             paragraph: { bidirectional: true, alignment: AlignmentType.RIGHT },
           },
+          heading1: { paragraph: { bidirectional: true, alignment: AlignmentType.RIGHT } },
+          heading2: { paragraph: { bidirectional: true, alignment: AlignmentType.RIGHT } },
+          heading3: { paragraph: { bidirectional: true, alignment: AlignmentType.RIGHT } },
         },
       },
       sections: [{
