@@ -239,16 +239,6 @@ function toChapterRange(ref: string): string {
   return m[2] === m[3] ? `${m[1]} ${m[2]}` : `${m[1]} ${m[2]}-${m[3]}`;
 }
 
-// מפרק ref לרשימת פרקים בודדים לקריאות links מקבילות
-// "Numbers 1:1-4:20" → ["Numbers 1","Numbers 2","Numbers 3","Numbers 4"]
-function getParashaChapters(ref: string): string[] {
-  const m = ref.match(/^([A-Za-z]+)\s+(\d+)(?::\d+)?-(\d+)(?::\d+)?$/);
-  if (m) {
-    const start = parseInt(m[2]), end = parseInt(m[3]);
-    if (end >= start) return Array.from({ length: end - start + 1 }, (_, i) => `${m[1]} ${start + i}`);
-  }
-  return [ref];
-}
 
 /** מאזן עומס: מריצה את fn על כל פריט בסדר עם לכל היותר `concurrency` טאסקים במקביל */
 async function mapWithConcurrency<T, R>(
@@ -276,19 +266,30 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-async function fetchWithRetry(url: string, opts: RequestInit): Promise<Response> {
-  try {
-    const resp = await fetch(url, opts);
-    if (resp.status >= 500) {
-      await new Promise<void>((res) => setTimeout(res, 800));
-      return fetch(url, opts);
+async function fetchWithRetry(url: string, opts: RequestInit, maxAttempts = 3): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (attempt > 0) {
+      if (opts.signal?.aborted) throw new DOMException("", "AbortError");
+      const delay = 1000 * 2 ** (attempt - 1); // 1s, 2s
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, delay);
+        opts.signal?.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(new DOMException("", "AbortError"));
+        }, { once: true });
+      });
     }
-    return resp;
-  } catch (e) {
-    if ((e as Error).name === "AbortError") throw e;
-    await new Promise<void>((res) => setTimeout(res, 800));
-    return fetch(url, opts);
+    try {
+      const resp = await fetch(url, opts);
+      if (resp.status < 500) return resp;
+      lastError = new Error(`HTTP ${resp.status}`);
+    } catch (e) {
+      if ((e as Error).name === "AbortError") throw e;
+      lastError = e;
+    }
   }
+  throw lastError;
 }
 
 async function prefetchSectionData(
@@ -397,27 +398,21 @@ const submit = async () => {
   originalByRef.value = {};
   loading.value = true;
   progressPercent.value = 0;
-  progressLabel.value = "טוען קישורי זוהר לכל פרק וטקסט התורה...";
+  progressLabel.value = "טוען קישורי זוהר וטקסט התורה...";
 
   const options = { method: "GET", headers: { accept: "application/json" }, signal };
-  // לינקים: פרק נפרד; with_text מחזיר את טקסט הזוהר בכל קישור (נדרש לתצוגה)
-  const chapterRefs = getParashaChapters(form.ref);
-  const chapterBump = PROGRESS_W.kabbalahChapters / Math.max(1, chapterRefs.length);
-  // טקסטים: טווח פרקים (texts API תומך בפורמט זה)
+  // שני ה-APIs תומכים בטווח פרקים: "Numbers 1-4" — בקשה אחת במקום בקשה לכל פרק
   const textRef = toChapterRange(form.ref);
 
   try {
-    const [allLinksArrays, textJson] = await Promise.all([
-      mapWithConcurrency(
-        chapterRefs,
-        SEFARIA_FETCH_CONCURRENCY,
-        (ch) =>
-          fetchWithRetry(`https://www.sefaria.org/api/links/${encodeURIComponent(ch)}?with_text=1&with_sheet_links=0&category=Kabbalah`, options).then((r) => r.json()),
-        signal,
-        () => {
-          progressPercent.value = Math.min(99, progressPercent.value + chapterBump);
-        }
-      ),
+    const [rawLinks, textJson] = await Promise.all([
+      fetchWithRetry(
+        `https://www.sefaria.org/api/links/${encodeURIComponent(textRef)}?with_text=1&with_sheet_links=0&category=Kabbalah`,
+        options
+      ).then((r) => {
+        progressPercent.value = Math.min(99, progressPercent.value + PROGRESS_W.kabbalahChapters);
+        return r.json();
+      }),
       (async () => {
         const j = await fetchWithRetry(
           `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(textRef)}?version=hebrew&fill_in_missing_segments=0&return_format=default`,
@@ -444,7 +439,7 @@ const submit = async () => {
       textByRef.value = newTextByRef;
     }
 
-    links.value = (allLinksArrays as Link[][]).flat();
+    links.value = Array.isArray(rawLinks) ? rawLinks as Link[] : [];
 
     const zohUnique = [...new Set(kabbalahLinks.value.map((l) => l.ref))];
     if (zohUnique.length === 0) {
