@@ -27,6 +27,18 @@
 
             <button class="generate-btn" id="generateBtn" disabled>📄 צור מסמך Word</button>
             <div id="status" class="status" style="display: none;"></div>
+
+            <div id="progressContainer" style="display:none; border:1px solid #fde68a; background:rgba(255,251,235,0.95); border-radius:6px; padding:10px 12px; margin-top:8px; box-shadow:0 1px 3px rgba(0,0,0,0.07);">
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; gap:8px;">
+                    <p id="progressLabel" dir="auto" style="margin:0; font-size:13px; color:#111827; flex:1; min-width:0; word-break:break-word;"></p>
+                    <span id="progressPercent" style="font-size:13px; font-weight:600; color:#92400e; white-space:nowrap; flex-shrink:0;">0%</span>
+                </div>
+                <div role="progressbar" aria-valuemin="0" aria-valuemax="100" id="progressTrack"
+                     style="height:10px; border-radius:9999px; background:#fef3c7; overflow:hidden; box-shadow:inset 0 0 0 1px rgba(217,168,35,0.3);">
+                    <div id="progressFill"
+                         style="height:100%; border-radius:9999px; background:#d97706; width:0%; transition:width 220ms ease-out;"></div>
+                </div>
+            </div>
         </div>
 
         <div id="previewSection" style="display:none; margin-top: 24px;">
@@ -35,7 +47,7 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
         class Manager {
             constructor() {
                 this.baseUrl = 'https://www.sefaria.org/api';
@@ -53,6 +65,7 @@
             }
 
             showError(message) {
+                this.hideProgress();
                 this.showStatus(message, 'error');
             }
 
@@ -69,9 +82,48 @@
                 }
             }
 
-            async fetchData(url) {
-                const response = await fetch(url);
-                return await response.json();
+            setProgress(label, percent) {
+                const container = document.getElementById('progressContainer');
+                const labelEl   = document.getElementById('progressLabel');
+                const percentEl = document.getElementById('progressPercent');
+                const fill      = document.getElementById('progressFill');
+                const track     = document.getElementById('progressTrack');
+
+                container.style.display = 'block';
+                labelEl.textContent  = label;
+                const rounded = Math.min(100, Math.round(percent));
+                percentEl.textContent = `${rounded}%`;
+                fill.style.width = `${Math.min(100, percent)}%`;
+                track.setAttribute('aria-valuenow', rounded);
+                track.setAttribute('aria-label', label);
+            }
+
+            hideProgress() {
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('progressFill').style.width = '0%';
+            }
+
+            async fetchData(url, maxAttempts = 3) {
+                let lastError;
+                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    if (attempt > 0) {
+                        const delay = 1000 * 2 ** (attempt - 1); // 1s → 2s
+                        const labelEl = document.getElementById('progressLabel');
+                        const prevLabel = labelEl?.textContent || '';
+                        const currentPct = parseFloat(document.getElementById('progressFill')?.style.width || '0');
+                        this.setProgress(`מנסה שוב (${attempt + 1}/${maxAttempts})...`, currentPct);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        if (labelEl) labelEl.textContent = prevLabel;
+                    }
+                    try {
+                        const resp = await fetch(url);
+                        if (resp.status < 500) return resp.json();
+                        lastError = new Error(`HTTP ${resp.status}`);
+                    } catch (e) {
+                        lastError = e;
+                    }
+                }
+                throw lastError;
             }
 
             async fetchSections(bookName) {
@@ -364,7 +416,7 @@
                 if (selectedIndex === '') return;
 
                 try {
-                    this.showStatus('טוען פרק חדש...', 'loading');
+                    this.setProgress('טוען נתוני פרק...', 5);
 
                     const book = this.book;
                     book.currentSectionTitle = book.sectionsTitles[selectedIndex][0].text;
@@ -373,20 +425,28 @@
                     book.chapters.refs = book.paragraphsRefs;
 
                     const chapterRef = `${book.name}, ${book.currentSectionTitle}`;
+
+                    this.setProgress(`טוען טקסט — ${book.currentSectionTitleHe}...`, 10);
                     const chapterData = await this.fetchChapterData(chapterRef);
+                    this.setProgress('טוען פירושים...', 55);
 
                     book.chapters.alt = chapterData.alts || [];
                     book.chapters.text = chapterData?.versions?.[0]?.text || [];
                     book.chapters.heText = chapterData?.versions?.[1]?.text || [];
 
                     const unorderedCommentaries = await this.fetchCommentaries(chapterRef);
+                    this.setProgress('מעבד נתונים...', 90);
+
                     book.chapters.commentaries = this.orderCommentaries(unorderedCommentaries);
 
                     book.dafBoundaries = this.buildDafBoundaries(book.currentSectionTitle);
                     this.log('📄 Daf boundaries built:', book.dafBoundaries.length, 'dafs');
 
                     this.book = book;
+                    this.setProgress('מרנדר תצוגה מקדימה...', 97);
                     this.renderPreview();
+
+                    this.hideProgress();
                     this.showStatus('פרק נטען בהצלחה!', 'success');
                     document.getElementById('generateBtn').disabled = false;
                 } catch (error) {
@@ -397,134 +457,143 @@
 
             async generateDocument() {
                 const book = this.book;
-                if (!book) {
-                    this.showError('הספר לא נטען עדיין');
-                    return;
-                }
-
-                this.showStatus('יוצר מסמך Word...', 'loading');
+                if (!book) { this.showError('הספר לא נטען עדיין'); return; }
 
                 try {
-                    this.footnoteCounter = 1;
-                    this.endnoteCounter = 1;
+                    this.setProgress('טוען ספריית docx...', 5);
 
-                    // יצירת כותרת המסמך
-                    let title = `ספר הזוהר - ${book.currentSectionTitleHe}`;
+                    const {
+                        Document, Packer, Paragraph, TextRun,
+                        HeadingLevel, FootnoteReferenceRun, AlignmentType, SectionType, ExternalHyperlink
+                    } = await import('https://esm.sh/docx@9.7.1');
 
-                    let html = `
-                    <!DOCTYPE html>
-                    <html dir="rtl" lang="he">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-                        <title>${title}</title>
-                    </head>
-                    <body>`;
+                    this.setProgress('בונה מסמך...', 30);
 
-                    // כותרת ומידע על המסמך
-                    html += `<div class="main-title">${title}</div>`;
+                    function stripHtml(html) {
+                        if (!html) return '';
+                        const div = document.createElement('div');
+                        div.innerHTML = html;
+                        return (div.textContent || '').trim();
+                    }
 
-                    // עיבוד כל פרק
-                    let currentDaf = null;
+                    function rtlPara(children, heading) {
+                        return new Paragraph({
+                            children,
+                            ...(heading !== undefined ? { heading } : {}),
+                            bidirectional: true,
+                            alignment: AlignmentType.LEFT,
+                        });
+                    }
+
+                    function textToRuns(text, bold = false) {
+                        const runs = [];
+                        (text || '').split('\n').forEach((line, idx) => {
+                            if (idx > 0) runs.push(new TextRun({ break: 1 }));
+                            if (line) runs.push(new TextRun({ text: line, bold, rightToLeft: true }));
+                        });
+                        return runs;
+                    }
+
+                    const footnotes = {};
+                    let fnId = 0;
+                    const bodyChildren = [];
                     const sefariaSectionBase = ('Zohar, ' + book.currentSectionTitle).replace(/ /g, '_');
 
-                    for (let i = 0; i < book.chapters.refs.length; i++) {
-                        let chapterRefs = book.chapters.refs[i];
+                    // כותרת
+                    const title = `ספר הזוהר — ${book.currentSectionTitleHe}`;
+                    bodyChildren.push(rtlPara([new TextRun({ text: title, rightToLeft: true })], HeadingLevel.HEADING_1));
+                    bodyChildren.push(rtlPara([new TextRun({ text: new Date().toLocaleString('he-IL', { hour12: false }), rightToLeft: true })]));
+                    bodyChildren.push(new Paragraph({ text: '' }));
 
-                        // כותרת פרק
-                        html += `<div class="chapter-title">פרק ${i + 1}</div>`;
+                    let currentDaf = null;
+                    const totalChapters = book.chapters.refs.length;
 
-                        // עבור כל פסקה בפרק
+                    for (let i = 0; i < totalChapters; i++) {
+                        this.setProgress(`בונה מסמך — פרק ${i + 1} מתוך ${totalChapters}...`, 30 + (i / totalChapters) * 55);
+
+                        const chapterRefs = book.chapters.refs[i];
                         for (let j = 0; j < chapterRefs.length; j++) {
                             const ref = chapterRefs[j];
-                            const hebrewText = book.chapters.heText[i]?.[j] || '';
-                            const aramicText = book.chapters.text[i]?.[j] || '';
-                            const altText = book.chapters.alt[i]?.[j]?.he?.[0] || '';
+                            const aramicText = stripHtml(book.chapters.text[i]?.[j] || '');
+                            const hebrewText = stripHtml(book.chapters.heText[i]?.[j] || '');
+                            const altText   = stripHtml(book.chapters.alt[i]?.[j]?.he?.[0] || '');
 
-                            // בדיקה אם יש תוכן
-                            if (!hebrewText && !aramicText && !altText) {
-                                continue;
-                            }
+                            if (!aramicText && !hebrewText && !altText) continue;
 
-                            // הוספת כותרת דף וילנא כשמשתנה הדף
+                            // כותרת דף וילנא
                             const dafBoundary = this.findDafForRef(ref, book.dafBoundaries);
                             if (dafBoundary && dafBoundary.dafLabel !== currentDaf) {
                                 currentDaf = dafBoundary.dafLabel;
                                 const dafUrl = `https://www.sefaria.org/${sefariaSectionBase}.${currentDaf}`;
                                 const dafDisplay = this.formatDafLabel(currentDaf);
-                                html += `<div style="text-align:center; margin:12px 0 4px; border-top:2px solid #8B6914; padding-top:6px;">
-                                    <a href="${dafUrl}" target="_blank" style="color:#8B6914; font-size:13px; font-weight:bold; text-decoration:none;">
-                                        ✦ דפוס וילנא — דף ${dafDisplay} ✦
-                                    </a>
-                                </div>`;
+                                bodyChildren.push(rtlPara(
+                                    [new ExternalHyperlink({ link: dafUrl, children: [new TextRun({ text: `✶ דפוס וילנא — דף ${dafDisplay} ✶`, rightToLeft: true, style: 'Hyperlink' })] })],
+                                    HeadingLevel.HEADING_2
+                                ));
                             }
 
-                            html += `<div class="paragraph-container">`;
+                            // כותרת פיסקא
+                            if (altText) {
+                                bodyChildren.push(rtlPara([new TextRun({ text: altText, rightToLeft: true })], HeadingLevel.HEADING_3));
+                            }
 
-                            // כותרת הפיסקא
-                            html += `
-                                <div class="paragraph-header" style="page-break-before: always;">
-                                    <span class="paragraph-number">${altText}</span>
-                                </div>`;
-
-                            // הטקסט הראשי
-                            let paragraphText = aramicText || altText;
-                            let paragraphTextHe = hebrewText || aramicText || altText;
+                            // טקסט ארמי עם הפניות להערות שוליים
                             const commentaries = book.chapters.commentaries.get(ref) || [];
+                            const mainRuns = textToRuns(aramicText, true);
 
-                            // הוספת מספור פירושים (עם קישורים אינטראקטיביים)
-                            commentaries.forEach(() => {
-                                paragraphText += `<sup><a name="endnote_ref_${this.endnoteCounter}"></a><a href="#endnote_${this.endnoteCounter}" class="endnote-ref">${this.endnoteCounter}</a></sup>`;
-                                this.endnoteCounter++;
-                            });
-
-                            html += `<h1 class="paragraph-text" style="font-size: 18px; font-weight: bold;">${paragraphText}</h1>`;
-                            html += `<h2 class="paragraph-text-he" style="font-size: 17px;">${paragraphTextHe}</h2>`;
-                            html += `<hr>`;
-
-                            // פירושים מקומיים תחת הפיסקה
-                            if (commentaries && commentaries.length > 0) {
-                                let commentaryCounter = this.endnoteCounter - commentaries.length;
-                                commentaries.forEach((commentary) => {
-                                    const commentaryText = commentary.he || commentary.text || 'אין טקסט זמין';
-                                    const source = commentary.sourceHeRef || commentary.sourceRef || 'מקור לא ידוע';
-                                    const link = `https://www.sefaria.org/${encodeURIComponent(commentary.ref || ref)}`;
-
-                                    html += `
-                                        <h3 class="inline-commentary">
-                                            <h4 class="inline-commentary-header">
-                                                <span class="inline-commentary-number">
-                                                    <a name="endnote_${commentaryCounter}"></a>
-                                                    <a href="#endnote_ref_${commentaryCounter}" class="endnote-back">${commentaryCounter}</a>
-                                                </span>
-                                                <span class="inline-commentary-title">${source}</span>
-                                            </h4>
-                                            <div class="inline-commentary-text">${commentaryText}</div>
-                                        </h3>`;
-                                    commentaryCounter++;
-                                });
+                            for (const c of commentaries) {
+                                fnId++;
+                                const comText = stripHtml(c.he || c.text || '');
+                                const source  = c.sourceHeRef || c.sourceRef || '';
+                                const comUrl  = `https://www.sefaria.org/${encodeURIComponent(c.ref || ref)}`;
+                                footnotes[fnId] = {
+                                    children: [new Paragraph({
+                                        children: [
+                                            new ExternalHyperlink({ link: comUrl, children: [new TextRun({ text: source, bold: true, rightToLeft: true, style: 'Hyperlink' })] }),
+                                            ...(comText ? [new TextRun({ break: 1 }), ...textToRuns(comText)] : []),
+                                        ],
+                                        bidirectional: true,
+                                        alignment: AlignmentType.LEFT,
+                                    })],
+                                };
+                                mainRuns.push(new FootnoteReferenceRun(fnId));
                             }
 
-                            html += `</div>`;
+                            if (mainRuns.length) bodyChildren.push(rtlPara(mainRuns));
+
+                            // תרגום עברי
+                            if (hebrewText) bodyChildren.push(rtlPara(textToRuns(hebrewText)));
                         }
                     }
 
-                    html += `</body></html>`;
+                    this.setProgress('יוצר קובץ...', 88);
 
-                    // הורדת הקובץ
-                    const blob = new Blob([html], { type: 'application/msword' });
+                    const doc = new Document({
+                        footnotes,
+                        styles: {
+                            default: {
+                                document: { run: { language: { bidi: 'he-IL' } }, paragraph: { bidirectional: true, alignment: AlignmentType.LEFT } },
+                                heading1: { paragraph: { bidirectional: true, alignment: AlignmentType.LEFT } },
+                                heading2: { paragraph: { bidirectional: true, alignment: AlignmentType.LEFT } },
+                                heading3: { paragraph: { bidirectional: true, alignment: AlignmentType.LEFT } },
+                            },
+                        },
+                        sections: [{ properties: { bidi: true, type: SectionType.CONTINUOUS }, children: bodyChildren }],
+                    });
+
+                    this.setProgress('מייצא...', 96);
+
+                    const blob = await Packer.toBlob(doc);
+                    const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
+                    const filename = `זוהר_${book.currentSectionTitle.replace(/[^֐-׿\w\s-]/g, '')}_${stamp}.docx`;
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-
-                    let filename = `זוהר_${book.currentSectionTitle.replace(/[^\u0590-\u05FF\w\s-]/g, '')}_עם_פירושים.doc`;
-
                     a.download = filename;
-                    document.body.appendChild(a);
                     a.click();
-                    document.body.removeChild(a);
                     URL.revokeObjectURL(url);
 
+                    this.hideProgress();
                     this.showStatus('מסמך Word נוצר בהצלחה!', 'success');
 
                 } catch (error) {
@@ -540,10 +609,10 @@
             const bookName = 'Zohar';
 
             try {
-                m.showStatus('טוען נתונים...', 'loading');
+                m.setProgress('טוען מבנה הספר...', 20);
 
                 const bookData = await m.fetchSections(bookName);
-                m.bookData = bookData; // Store book data for later use in section updates
+                m.bookData = bookData;
 
                 const book = {
                     name: bookName,
@@ -560,12 +629,12 @@
                     currentSectionTitleHe: null
                 };
 
+                m.setProgress('מכין רשימת פרקים...', 85);
                 book.sectionsTitles = m.extractSectionTitles(bookData);
                 m.populateSectionSelect(book);
-
-                // לא טוען אוטומטית את הפרק הראשון
                 m.book = book;
 
+                m.hideProgress();
                 m.showStatus('נתונים נטענו בהצלחה!', 'success');
 
             } catch (error) {

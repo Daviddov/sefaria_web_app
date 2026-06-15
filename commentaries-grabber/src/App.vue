@@ -591,7 +591,7 @@ async function exportResultsToWord() {
       children,
       ...(heading !== undefined ? { heading } : {}),
       bidirectional: true,
-      alignment: AlignmentType.RIGHT,
+      alignment: AlignmentType.LEFT,
     });
   }
 
@@ -619,7 +619,7 @@ async function exportResultsToWord() {
     bodyChildren.push(new Paragraph({
       heading: HeadingLevel.HEADING_3,
       bidirectional: true,
-      alignment: AlignmentType.RIGHT,
+      alignment: AlignmentType.LEFT,
       children: [new ExternalHyperlink({
         link: sefariaUrl,
         children: [new TextRun({ text: (i + 1) + ". " + link.collectiveTitle.he + " — " + link.sourceHeRef, rightToLeft: true, style: "Hyperlink" })],
@@ -641,7 +641,7 @@ async function exportResultsToWord() {
               ...(comBody ? [new TextRun({ break: 1 }), ...textToRuns(comBody)] : []),
             ],
             bidirectional: true,
-            alignment: AlignmentType.RIGHT,
+            alignment: AlignmentType.LEFT,
           }),
         ],
       };
@@ -668,11 +668,11 @@ async function exportResultsToWord() {
         default: {
           document: {
             run: { language: { bidi: "he-IL" } },
-            paragraph: { bidirectional: true, alignment: AlignmentType.RIGHT },
+            paragraph: { bidirectional: true, alignment: AlignmentType.LEFT },
           },
-          heading1: { paragraph: { bidirectional: true, alignment: AlignmentType.RIGHT } },
-          heading2: { paragraph: { bidirectional: true, alignment: AlignmentType.RIGHT } },
-          heading3: { paragraph: { bidirectional: true, alignment: AlignmentType.RIGHT } },
+          heading1: { paragraph: { bidirectional: true, alignment: AlignmentType.LEFT } },
+          heading2: { paragraph: { bidirectional: true, alignment: AlignmentType.LEFT } },
+          heading3: { paragraph: { bidirectional: true, alignment: AlignmentType.LEFT } },
         },
       },
       sections: [{
